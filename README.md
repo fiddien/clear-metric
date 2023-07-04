@@ -50,15 +50,16 @@ Download the spacy model.
 python -m spacy download en_core_web_sm
 ```
 
-Run the script
+Run the script. Separate the sentences using `<sep>`.
 ```
 python main.py -s "Yellow is blue.<sep>Blue befriends green."
 ```
 
-Read from a file, output the results into another file.
+Read from a file, separete the sentences by a newline. Output the results into another file.
 ```
 python main.py -i example_sentences.txt -o example_results.txt
 ```
 
 ## To Do
-- [] Implement the "abstract" part of the 3rd principle.
+- [ ] Implement the "abstract" part of the 3rd principle.
+- [ ] Create an XML or JSON format of the output.
