@@ -33,6 +33,8 @@ Create a folder for the AMR parser model.
 mkdir env/Lib/site-packages/amrlib/data
 ```
 
+Before continuing, obtain one of the available the AMR parser models in [amrlib](https://github.com/bjascob/amrlib-models)
+
 Put the downloaded model file into the `clear-metric` folder. Extract it to the `data` folder.
 ```
 tar -zxvf model_parse_spring-v0_1_0.tar.gz.gz -C env/Lib/site-packages/amrlib/data
