@@ -1,6 +1,6 @@
 # Clear Sentences Metric
 
-Check whether a sentence adhere to five principles of clear writing (Williams and Bizup).
+Check whether a sentence adhere to five principles of clear writing (Williams and Bizup) by leveraging abstract meaning representation parse and dependency parse of the sentence.
 
 Principles:
 1. Make the character of the story the subject of the sentence.
@@ -9,7 +9,7 @@ Principles:
 4. Avoid long introductory phrases and clauses.
 5. Avoid interrupting subject and verb connection.
 
-Score 1 indicates violation of the principle. Score 0 indicates adherence to the principle. Thus, lower total score is better.
+Score 1 indicates violation of the principle, while score 0 indicates adherence to the principle. Thus, lower total score is better.
 
 ## Instructions
 
@@ -33,7 +33,7 @@ Create a folder for the AMR parser model.
 mkdir env/Lib/site-packages/amrlib/data
 ```
 
-Before continuing, obtain one of the available the AMR parser models in [amrlib](https://github.com/bjascob/amrlib-models)
+Before continuing, obtain one of the available the AMR parser models in [amrlib](https://github.com/bjascob/amrlib-models). In the following tutorial, the SPRING model is used.
 
 Put the downloaded model file into the `clear-metric` folder. Extract it to the `data` folder.
 ```
@@ -59,3 +59,6 @@ Read from a file, output the results into another file.
 ```
 python main.py -i example_sentences.txt -o example_results.txt
 ```
+
+## To Do
+- [] Implement the "abstract" part of the 3rd principle.
