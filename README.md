@@ -74,7 +74,6 @@ To only run the action-character detection task, use the `-ac` flag.
 python main.py -i example_sentences.txt -o example_results.txt -ac
 ```
 
-To only 
 
 ## To Do
 - [ ] Issue: The metric currently penalises passive sentences on the first principle. Might want to return multiple action-character pair candidates.
