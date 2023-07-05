@@ -69,7 +69,15 @@ To read the sentences from a file, use the `-i` flag. Different sentences should
 python main.py -i example_sentences.txt -o example_results.txt
 ```
 
+To only run the action-character detection task, use the `-ac` flag.
+```
+python main.py -i example_sentences.txt -o example_results.txt -ac
+```
+
+To only 
+
 ## To Do
+- [ ] Issue: The metric currently penalises passive sentences on the first principle. Might want to return multiple action-character pair candidates.
 - [ ] Implement batching for both the AMR parsing and syntactic parsing.
 - [ ] Implement the "abstract" part of the 3rd principle.
 - [ ] Create an XML or JSON format of the output.

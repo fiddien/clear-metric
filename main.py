@@ -9,7 +9,7 @@ parser = argparse.ArgumentParser(description="",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-s", "--sentences", type=str,
                     help="List of sentences to score. Separate each sentences with <sep> token.")
-parser.add_argument("-ac", "--actn-char-only", action='store_true',
+parser.add_argument("-ac", "--action-character-only", action='store_true',
                     help="Only outputs the (action, character) pair")
 parser.add_argument("-i", "--input-file", type=str,
                     help="A file that contains sentences to score. Separate different sentences by a new line.")
@@ -17,8 +17,6 @@ parser.add_argument("-o", "--output-file", type=str,
                     help="Store the scores into a text file.")
 # parser.add_argument("-v", "--verbose", action='score_false')
 
-# stog = ''
-# nlp = ''
 stog = amrlib.load_stog_model()
 nlp = spacy.load('en_core_web_sm')
 
@@ -322,7 +320,7 @@ def print_actn_char(sents, actn_char_pairs, save_result=False):
         out = ''
         out += f"Sentence {i+1:>3d} : {sent}\n"
         out += f"  Action     : {actn[0]} [id={actn[1]}]\n"
-        out += f"  Character  : {char[0]} [id={char[1]}]\n\n"
+        out += f"  Character  : {char[0]} [id={char[1]}]\n"
         print(out)
         if save_result:
             output += out
@@ -343,7 +341,7 @@ def print_all(sents, actn_char_pairs, save_result=False):
         out += f"  Character  : {s.character[1]} [id={s.character[0]}]\n"
         out += f"  Subject    : {s.NP} [id={s.NP_pos}]\n"
         out += f"  Scores     : {s.scores}\n"
-        out += f"  Total sc.  : {sum(s.scores)}\n\n"
+        out += f"  Total sc.  : {sum(s.scores)}\n"
         print(out)
         if save_result:
             output += out
@@ -362,7 +360,7 @@ if __name__ == '__main__':
     
     actn_char_pairs = get_actn_char(sents)
     
-    if args.actn_char_only:
+    if args.action_character_only:
         result = print_actn_char(sents, actn_char_pairs, save_result=args.output_file)
     else:
         result = print_all(sents, actn_char_pairs, save_result=args.output_file)
