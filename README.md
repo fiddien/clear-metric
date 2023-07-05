@@ -13,8 +13,9 @@ Score 1 indicates violation of the principle, while score 0 indicates adherence 
 
 ## Instructions
 
-Move to the folder.
+Clone this repo then move to the folder.
 ```
+git clone https://github.com/fiddien/clear-metric.git
 cd clear-metric
 ```
 
@@ -27,6 +28,8 @@ Install the necessary packages.
 ```
 pip install -r requirements.txt
 ```
+
+### Prepare the AMR parser model
 
 Create a folder for the AMR parser model.
 ```
@@ -45,21 +48,28 @@ Rename the folder.
 mv env/Lib/site-packages/amrlib/data/model_parse_spring-v0_1_0 env/Lib/site-packages/amrlib/data/model_stog
 ```
 
-Download the spacy model.
+### Prepare the syntactic parser model (spaCy)
+
+Download the spaCy model.
 ```
 python -m spacy download en_core_web_sm
 ```
 
-Run the script. Separate the sentences using `<sep>`.
+## Using the script
+
+Run the script to score sentences using the metrics. You can input the sentence through the command itself or from a text file.
+
+To input sentences through the command, use the `-s` flag and separate different sentences using `<sep>`.
 ```
 python main.py -s "Yellow is blue.<sep>Blue befriends green."
 ```
 
-Read from a file, separete the sentences by a newline. Output the results into another file.
+To read the sentences from a file, use the `-i` flag. Different sentences should be separated by a newline. Output the results into another file by using the `-o` flag.
 ```
 python main.py -i example_sentences.txt -o example_results.txt
 ```
 
 ## To Do
+- [ ] Implement batching for both the AMR parsing and syntactic parsing.
 - [ ] Implement the "abstract" part of the 3rd principle.
 - [ ] Create an XML or JSON format of the output.
