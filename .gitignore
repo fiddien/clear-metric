@@ -1,3 +1,5 @@
 env/
+data/
+experiments/
 *.tar.gz
-test.py
+*.sh

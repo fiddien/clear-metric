@@ -3,6 +3,8 @@ import amrlib
 from amrlib.graph_processing.annotator import add_lemmas, annotate_penman
 from amrlib.alignments.rbw_aligner import RBWAligner
 import spacy
+from tqdm import tqdm
+from time import sleep
 
 
 parser = argparse.ArgumentParser(description="",
@@ -11,11 +13,19 @@ parser.add_argument("-s", "--sentences", type=str,
                     help="List of sentences to score. Separate each sentences with <sep> token.")
 parser.add_argument("-ac", "--action-character-only", action='store_true',
                     help="Only outputs the (action, character) pair")
+parser.add_argument("-cs", "--clear-scores-only", action='store_true',
+                    help="Only outputs the (action, character) pair")
 parser.add_argument("-i", "--input-file", type=str,
                     help="A file that contains sentences to score. Separate different sentences by a new line.")
 parser.add_argument("-o", "--output-file", type=str,
                     help="Store the scores into a text file.")
-# parser.add_argument("-v", "--verbose", action='score_false')
+parser.add_argument("-b", "--batch-size", type=int, default=500,
+                    help="Process the sentences in batch.")
+parser.add_argument("-sf", "--start-from", type=int, default=0,
+                    help="Start sentences from certain line number.")
+parser.add_argument("-ea", "--end-at", type=int, default=-1,
+                    help="End sentences at certain line number.")
+
 
 stog = amrlib.load_stog_model()
 nlp = spacy.load('en_core_web_sm')
@@ -153,7 +163,7 @@ def get_actn_char(sents, amr_parser=stog, return_results=True, print_results=Fal
         (list) of action-character pair candidates
         The candidates are in the form of tuples of token (str), token id (int), and its propbank name (str).
     """
-    graphs = amr_parser.parse_sents(sents)
+    graphs = amr_parser.parse_sents(sents, disable_progress=False)
     graphs = [align_vars(g) for g in graphs]
 
     for i, g in enumerate(graphs):
@@ -212,18 +222,18 @@ class Sentence():
 
     def get_np(self):
         """ Get the noun phrase which directly depends on the root (main verb). """
-        for id, token in enumerate(self.doc):
+        for token in self.doc:
             if token.dep_ in ['nsubj', 'nsubjpass', 'expl'] and token.head == self.root:
                 NP_unsorted = self._extract_dependents(token)
                 NP = [t for t in sorted(NP_unsorted, key=lambda x: x.i)]
 
                 self.subject, self.NP = [], []
                 for i, t in enumerate(NP):
-                    if t.text == ',':
+                    if t.text == ',' and i > 0:
                         break
                     self.subject.append((t.i, t.text, t.pos_))
                     self.NP.append(t)
-
+                
                 self.NP_pos = (self.NP[0].i, self.NP[-1].i)
                 self.NP = ' '.join([t.text for t in self.NP])
                 return self.NP
@@ -314,53 +324,80 @@ class Sentence():
         return scores
 
 
-def print_actn_char(sents, actn_char_pairs, save_result=False):
+def print_actn_char(sents, actn_char_pairs, sent_num, save_result=False):
     output = ''
-    for i, (sent, (actn, char)) in enumerate(zip(sents, actn_char_pairs)):
+    for sent, (actn, char) in zip(sents, actn_char_pairs):
         out = ''
-        out += f"Sentence {i+1:>3d} : {sent}\n"
-        out += f"  Action     : {actn[0]} [id={actn[1]}]\n"
-        out += f"  Character  : {char[0]} [id={char[1]}]\n"
+        out += f"Sentence {sent_num:>4d} : {sent}\n"
+        out += f"  Action      : {actn[0]} [id={actn[1]}]\n"
+        out += f"  Character   : {char[0]} [id={char[1]}]\n"
         print(out)
+
+        sent_num += 1
+
         if save_result:
             output += out
+    
     if save_result:
-        with open(args.output_file, 'w') as f:
+        mode = 'w' if sent_num<=batch_size else 'a'
+        with open(args.output_file, mode, encoding='utf-8') as f:
             f.write(output)
 
 
-def print_all(sents, actn_char_pairs, save_result=False):
+def print_all(sents, actn_char_pairs, sent_num, save_result=False):
     output = ''
-    for i, (sent, (actn, char)) in enumerate(zip(sents, actn_char_pairs)):
+    for sent, (actn, char) in tqdm(zip(sents, actn_char_pairs)):
+        
         s = Sentence(sent, action=actn, character=char)
         s.get_scores()
+
         out = ''
-        out += f"Sentence {i+1:>3d} : {sent}\n"
-        out += f"  Action     : {s.action[1]} [id={s.action[0]}]\n"
-        out += f"  Verb       : {s.VP} [id={s.VP_pos}]\n"
-        out += f"  Character  : {s.character[1]} [id={s.character[0]}]\n"
-        out += f"  Subject    : {s.NP} [id={s.NP_pos}]\n"
-        out += f"  Scores     : {s.scores}\n"
-        out += f"  Total sc.  : {sum(s.scores)}\n"
+        out += f"Sentence {sent_num:>4d} : {sent}\n"
+        out += f"  Action      : {s.action[1]} [id={s.action[0]}]\n"
+        out += f"  Verb        : {s.VP} [id={s.VP_pos}]\n"
+        out += f"  Character   : {s.character[1]} [id={s.character[0]}]\n"
+        out += f"  Subject     : {s.NP} [id={s.NP_pos}]\n"
+        out += f"  Scores      : {s.scores}\n"
+        out += f"  Total sc.   : {sum(s.scores)}\n"
+
         print(out)
+    
+        sent_num += 1
+        sleep(0.01)
+
         if save_result:
             output += out
+    
     if save_result:
-        with open(args.output_file, 'w') as f:
+        mode = 'w' if sent_num<=batch_size else 'a'
+        with open(args.output_file, mode, encoding='utf-8') as f:
             f.write(output)
+
+def run_parsing(sents_batch, action_character_only, output_file, count_start):
+    
+    print('Parsing semantics...')
+    actn_char_pairs = get_actn_char(sents_batch)
+    # actn_char_pairs = [((None, None), (None, None)) for i in sents_batch]
+    
+    if action_character_only:
+        result = print_actn_char(sents_batch, actn_char_pairs, sent_num=count_start, save_result=output_file)
+    else:
+        print('Parsing syntax...')
+        result = print_all(sents_batch, actn_char_pairs, sent_num=count_start, save_result=output_file)
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    batch_size = args.batch_size
     
     if args.input_file is not None:
-        sents = [line.rstrip() for line in open(args.input_file) if line!='']
+        sents = [line.rstrip() for line in open(args.input_file, encoding='utf-8') if line!='']
     else:
         sents = args.sentences.split('<sep>')
     
-    actn_char_pairs = get_actn_char(sents)
-    
-    if args.action_character_only:
-        result = print_actn_char(sents, actn_char_pairs, save_result=args.output_file)
-    else:
-        result = print_all(sents, actn_char_pairs, save_result=args.output_file)
+    for i in range(0, len(sents), batch_size):
+        i += args.start_from
+        j = min(len(sents), i+batch_size, args.end_at)
+        sents_batch = sents[i:j]
+        print("Processing sentence {} to {}".format(i, j-1))
+        run_parsing(sents_batch, args.action_character_only, args.output_file, i)
