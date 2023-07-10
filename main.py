@@ -108,7 +108,7 @@ def get_children(graph, var):
         children: (tuple) child variable and its role
     """
     children = [(t, r) for (s, r, t) in graph.triples if s==var and r!=':instance']
-    if var.isdigit():
+    if var.isdigit() and children:
         return children[1]
     return children[0] if children else (None, None)
 
@@ -389,11 +389,15 @@ def run_parsing(sents_batch, action_character_only, output_file, count_start):
 if __name__ == '__main__':
     args = parser.parse_args()
     batch_size = args.batch_size
+
     
     if args.input_file is not None:
         sents = [line.rstrip() for line in open(args.input_file, encoding='utf-8') if line!='']
     else:
         sents = args.sentences.split('<sep>')
+    
+    if args.end_at == -1:
+        args.end_at = len(sents)
     
     for i in range(0, len(sents), batch_size):
         i += args.start_from

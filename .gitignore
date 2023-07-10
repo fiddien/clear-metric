@@ -3,3 +3,5 @@ data/
 experiments/
 *.tar.gz
 *.sh
+
+__pycache__/
