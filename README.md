@@ -76,7 +76,7 @@ python main.py -i example_sentences.txt -o example_results.txt -ac
 
 
 ## To Do
-- [ ] Issue: The metric currently penalises passive sentences on the first principle. Might want to return multiple action-character pair candidates.
+- [x] Issue: The metric currently penalises passive sentences on the first principle. Might want to return multiple action-character pair candidates.
 - [x] Implement batching for both the AMR parsing and syntactic parsing.
 - [ ] Implement the "abstract" part of the 3rd principle.
 - [ ] Create an XML or JSON format of the output.

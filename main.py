@@ -32,45 +32,54 @@ nlp = spacy.load('en_core_web_sm')
 
 # === AMR parsing happens here to determine the character and action of the sentence ===
 
-def align_vars(graph_str):
-    """ 
-    Align the nodes of each AMR graphs to a token in the respective sentence string.
-    Argument:
-        graph_str: (str) AMR graph
-    Return: 
-        a (dict) that contain the Penman graph and the collection nodes in the graph
-        accompanied by information about the tokens, id of the tokens (token number)
-        and each corresponding variable name
-    """
-    assert isinstance(graph_str, str)
+# === AMR parsing happens here to determine the character and action of the sentence ===
 
-    penman_graph = add_lemmas(graph_str, snt_key='snt')
-    penman_graph = annotate_penman(penman_graph)
-    aligned_graph = RBWAligner.from_penman_w_json(penman_graph)
-    nodes_alignment = {}
+class AMR:
+    def __init__(self, sents, amr_parser=stog):
+        self.sents = sents
+        graphs = amr_parser.parse_sents(sents, disable_progress=False)
+        self.graphs_str = graphs
+        self.aligned = [self.align_vars(g) for g in graphs]
 
-    # Nodes that can be aligned to the strings/tokens
-    for i, (a, t) in enumerate(zip(aligned_graph.alignments, aligned_graph.tokens)):
-        if a:
-            nodes_alignment[a.triple[-1]] = {
-                'token': t,
-                'token_id': i,
-                'var': a.triple[0],
-            }
+    def align_vars(self, graph_str):
+        """ 
+        Align the nodes of each AMR graphs to a token in the respective sentence string.
+        Argument:
+            graph_str: (str) AMR graph
+        Return: 
+            a (dict) that contain the Penman graph and the collection nodes in the graph
+            accompanied by information about the tokens, id of the tokens (token number)
+            and each corresponding variable name
+        """
+        assert isinstance(graph_str, str)
 
-    # Nodes that does not have an alignment
-    for node in penman_graph.instances():
-        if node.target not in nodes_alignment:
-            nodes_alignment[node.target] = {
-                'token': '',
-                'token_id': None,
-                'var': node.source,
-            }
+        penman_graph = add_lemmas(graph_str, snt_key='snt')
+        penman_graph = annotate_penman(penman_graph)
+        aligned_graph = RBWAligner.from_penman_w_json(penman_graph)
+        nodes_alignment = {}
 
-    return {
-        'penman': penman_graph,
-        'nodes': nodes_alignment,
-    }
+        # Nodes that can be aligned to the strings/tokens
+        for i, (a, t) in enumerate(zip(aligned_graph.alignments, aligned_graph.tokens)):
+            if a:
+                nodes_alignment[a.triple[-1]] = {
+                    'token': t,
+                    'token_id': i,
+                    'var': a.triple[0],
+                }
+
+        # Nodes that does not have an alignment
+        # for node in penman_graph.instances():
+        #     if node.target not in nodes_alignment:
+        #         nodes_alignment[node.target] = {
+        #             'token': '',
+        #             'token_id': None,
+        #             'var': node.source,
+        #         }
+
+        return {
+            'penman': penman_graph,
+            'aligned_nodes': nodes_alignment,
+        }
 
 
 def get_concept_map(graph):
@@ -113,7 +122,7 @@ def get_children(graph, var):
     return children[0] if children else (None, None)
 
 
-def get_actn_char_candidates(graph):
+def get_actn_char_candidates(graph, aligned_node):
     """
     Argument:
         graph: (penman.graph)
@@ -125,32 +134,43 @@ def get_actn_char_candidates(graph):
     candidates = []
 
     for (source, target), role in role_map.items():
-        if role==':ARG0':
-            # If the node is an intermediete node (aligned into an entity)
-            if concept_map[target] in ['person', 'country', 'and']:
-                role_child = ''
-                # Traverse through the graph
-                while role_child not in [':op1', ':ARG0-of']:
-                    target_child, role_child = get_children(graph, target)
-                    if target_child:
-                        target = target_child
-                    else:
-                        break
 
-                if target not in concept_map:
-                    # The action-character tuple
-                    pair = (concept_map[source], target)
+        print(source, target, '=')
+        if concept_map[source] in aligned_node:
+            
+            if role in [':ARG0', ':ARG1']:
+
+                # If the node is an intermediete node (aligned into an entity)
+                if concept_map[target] in ['person', 'country', 'and']:
+                    role_child = ''
+                    # Traverse through the graph
+                    print(source, target, concept_map[target], role_child)
+                    while target not in aligned_node:
+                        target_child, role_child = get_children(graph, target)
+                        print(' ', target_child, role_child)
+                        if role_child=='name':
+                            att = graph.attribute()
+                            target_child = [x.target for x in att if x.source==target_child][0]
+                        print(' ', target_child, role_child)
+                        if target_child:
+                            target = target_child
+                        else:
+                            break
+
+                    if target not in concept_map:
+                        # The action-character tuple
+                        pair = (concept_map[source], target)
+                    else:
+                        pair = (concept_map[source], concept_map[target])
                 else:
                     pair = (concept_map[source], concept_map[target])
-            else:
-                pair = (concept_map[source], concept_map[target])
-            candidates.append(pair)
-            break
+                candidates.append(pair)
+        
 
     return candidates
 
 
-def get_actn_char(sents, amr_parser=stog, return_results=True, print_results=False,
+def get_actn_char(aligned_amrs, return_results=True, print_results=False,
                   return_graphs=False):
     """
     Arguments:
@@ -163,20 +183,27 @@ def get_actn_char(sents, amr_parser=stog, return_results=True, print_results=Fal
         (list) of action-character pair candidates
         The candidates are in the form of tuples of token (str), token id (int), and its propbank name (str).
     """
-    graphs = amr_parser.parse_sents(sents, disable_progress=False)
-    graphs = [align_vars(g) for g in graphs]
+    graphs = aligned_amrs
 
     for i, g in enumerate(graphs):
-        candidates = get_actn_char_candidates(g['penman'])
+        candidates = get_actn_char_candidates(g['penman'], g['aligned_nodes'])
         if candidates:
             graphs[i]['candidates'] = []
             # Store the token, token id, and the concept
             for actn, char in candidates:
-                actn_token, char_token = ('', None, None),('', None, None)
-                if actn in g['nodes']:
-                    actn_token = (g['nodes'][actn]['token'], g['nodes'][actn]['token_id'], actn)
-                if char in g['nodes']:
-                    char_token = (g['nodes'][char]['token'], g['nodes'][char]['token_id'], char)
+                actn_token, char_token = ('', None, None), ('', None, None)
+                if actn in g['aligned_nodes']:
+                    actn_token = (
+                        g['aligned_nodes'][actn]['token'], 
+                        g['aligned_nodes'][actn]['token_id'], 
+                        actn
+                    )
+                if char in g['aligned_nodes']:
+                    char_token = (
+                        g['aligned_nodes'][char]['token'], 
+                        g['aligned_nodes'][char]['token_id'], 
+                        char
+                    )
                 graphs[i]['candidates'].append((actn_token, char_token))
         else:
             graphs[i]['candidates'] = [(('', None, None),('', None, None))]
@@ -188,7 +215,7 @@ def get_actn_char(sents, amr_parser=stog, return_results=True, print_results=Fal
             print("  Character : {} [id={}]".format(char[0], char[1]))
             print("  Action    : {} [id={}]".format(actn[0], actn[1]))
     if return_graphs:
-        return [g['candidates'][0][:2] for g in graphs] , graphs
+        return [g['candidates'][0][:2] for g in graphs], graphs
     if return_results:
         return [g['candidates'][0][:2] for g in graphs]
     
@@ -206,7 +233,6 @@ class Sentence():
         self.NP_pos, self.VP_pos = (0, 0), (0, 0)
         self.subject, self.verb = [(-1, '')], [(-1, '')]
         self.doc = self.parse()
-        # self.tree = re.sub(r"( '?(\w+|,|\.))\)", ')', list(self.doc.sents)[0]._.parse_string)
         self.root = self.get_root()
 
     def parse(self):
@@ -310,7 +336,6 @@ class Sentence():
 
 
     def get_scores(self):
-        """Using harmonic means of all scores"""
         self.get_vp()
         self.get_np()
         scores = [
@@ -318,7 +343,7 @@ class Sentence():
             self.score_action(),
             self.score_long_abstract_subject(),
             self.score_long_intro_phrases_clauses(),
-            self.score_subj_verb_connection()
+            self.score_subj_verb_connection(),
         ]
         self.scores = scores
         return scores
@@ -373,11 +398,11 @@ def print_all(sents, actn_char_pairs, sent_num, save_result=False):
         with open(args.output_file, mode, encoding='utf-8') as f:
             f.write(output)
 
-def run_parsing(sents_batch, action_character_only, output_file, count_start):
+def run_parsing(sents_batch, action_character_only, output_file=None, count_start=0):
     
     print('Parsing semantics...')
-    actn_char_pairs = get_actn_char(sents_batch)
-    # actn_char_pairs = [((None, None), (None, None)) for i in sents_batch]
+    graphs = AMR(sents_batch)
+    actn_char_pairs = get_actn_char(graphs.aligned)
     
     if action_character_only:
         result = print_actn_char(sents_batch, actn_char_pairs, sent_num=count_start, save_result=output_file)
@@ -405,3 +430,5 @@ if __name__ == '__main__':
         sents_batch = sents[i:j]
         print("Processing sentence {} to {}".format(i, j-1))
         run_parsing(sents_batch, args.action_character_only, args.output_file, i)
+        if i > args.end_at:
+            break
