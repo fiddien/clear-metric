@@ -27,7 +27,7 @@ parser.add_argument("-ea", "--end-at", type=int, default=-1,
                     help="End sentences at certain line number.")
 
 
-stog = amrlib.load_stog_model()
+stog = amrlib.load_stog_model(batch_size=16)
 nlp = spacy.load('en_core_web_sm')
 
 # === AMR parsing happens here to determine the character and action of the sentence ===
@@ -122,7 +122,7 @@ def get_children(graph, var):
     return children[0] if children else (None, None)
 
 
-def get_actn_char_candidates(graph, aligned_node):
+def get_actn_char_candidates(graph, aligned_nodes):
     """
     Argument:
         graph: (penman.graph)
@@ -135,23 +135,23 @@ def get_actn_char_candidates(graph, aligned_node):
 
     for (source, target), role in role_map.items():
 
-        print(source, target, '=')
-        if concept_map[source] in aligned_node:
+        if concept_map[source] in aligned_nodes:
             
             if role in [':ARG0', ':ARG1']:
 
                 # If the node is an intermediete node (aligned into an entity)
                 if concept_map[target] in ['person', 'country', 'and']:
                     role_child = ''
+
                     # Traverse through the graph
-                    print(source, target, concept_map[target], role_child)
-                    while target not in aligned_node:
+                    while concept_map[target] not in aligned_nodes:
+                        # print(target, graph.metadata['snt'])
                         target_child, role_child = get_children(graph, target)
-                        print(' ', target_child, role_child)
-                        if role_child=='name':
-                            att = graph.attribute()
-                            target_child = [x.target for x in att if x.source==target_child][0]
-                        print(' ', target_child, role_child)
+                        
+                        # if role_child=='name':
+                        #     att = graph.attribute()
+                        #     target_child = [x.target for x in att if x.source==target_child][0]
+                        
                         if target_child:
                             target = target_child
                         else:
@@ -186,6 +186,7 @@ def get_actn_char(aligned_amrs, return_results=True, print_results=False,
     graphs = aligned_amrs
 
     for i, g in enumerate(graphs):
+        print(g['penman'].metadata)
         candidates = get_actn_char_candidates(g['penman'], g['aligned_nodes'])
         if candidates:
             graphs[i]['candidates'] = []
@@ -428,7 +429,9 @@ if __name__ == '__main__':
         i += args.start_from
         j = min(len(sents), i+batch_size, args.end_at)
         sents_batch = sents[i:j]
+        
         print("Processing sentence {} to {}".format(i, j-1))
         run_parsing(sents_batch, args.action_character_only, args.output_file, i)
+        
         if i > args.end_at:
             break
