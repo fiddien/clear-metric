@@ -137,25 +137,26 @@ def get_actn_char_candidates(graph, aligned_nodes):
 
         if concept_map[source] in aligned_nodes:
             
-            if role in [':ARG0', ':ARG1']:
+            if role in [':ARG0']:
 
                 # If the node is an intermediete node (aligned into an entity)
                 if concept_map[target] in ['person', 'country', 'and']:
-                    role_child = ''
 
                     # Traverse through the graph
-                    while concept_map[target] not in aligned_nodes:
+                    traversing = True
+                    while traversing:
                         # print(target, graph.metadata['snt'])
                         target_child, role_child = get_children(graph, target)
-                        
-                        # if role_child=='name':
-                        #     att = graph.attribute()
-                        #     target_child = [x.target for x in att if x.source==target_child][0]
                         
                         if target_child:
                             target = target_child
                         else:
                             break
+
+                        if target in concept_map:
+                            traversing = concept_map[target] not in aligned_nodes
+                        else:
+                            traversing = target not in aligned_nodes
 
                     if target not in concept_map:
                         # The action-character tuple
@@ -429,7 +430,7 @@ if __name__ == '__main__':
         i += args.start_from
         j = min(len(sents), i+batch_size, args.end_at)
         sents_batch = sents[i:j]
-        
+
         print("Processing sentence {} to {}".format(i, j-1))
         run_parsing(sents_batch, args.action_character_only, args.output_file, i)
         
