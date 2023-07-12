@@ -274,7 +274,8 @@ class Sentence():
         for child in self._extract_dependents(self.root):
             if child.dep_ in ['aux', 'auxpass']:
                 VP.append(child)
-
+        VP = sorted(VP, key=lambda x: x.i)
+        
         VP_group = self._find_consecutive_tokens(VP)
         if VP_group:
             for group in VP_group:
