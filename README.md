@@ -52,7 +52,7 @@ mv env/Lib/site-packages/amrlib/data/model_parse_spring-v0_1_0 env/Lib/site-pack
 
 Download the spaCy model.
 ```
-python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_md
 ```
 
 ## Using the script
