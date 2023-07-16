@@ -26,7 +26,7 @@ def print_all(scores, sents, sent_num, save_result=False):
     for i, score in enumerate(scores):
         out = ''
         out += f"Sent {i:>7d} : {sents.amrs.graphs[i].metadata['snt']}\n"
-        out += f"  Scores       : {score}\n"
+        out += f"  Scores     : {score}\n"
        
         outputs += out
     
