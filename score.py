@@ -8,22 +8,20 @@ class ClearMetric:
     def score_character(self, structure, story):
         if structure and story:
             for scene in story:
-                for phrase in structure:
-                    for x in scene['character']:
-                        for y in phrase['subject']:
-                            if [x.i==y.i]:
-                                return 0
+                for x in scene['character']:
+                    for idx in self.subjects_start:
+                        if x.i==idx:
+                            return 0
         return 1
 
 
     def score_action(self, structure, story):
         if structure and story:
             for scene in story:
-                for phrase in structure:
-                    for x in scene['action']:
-                        for y in phrase['verb']:
-                            if [x.i==y.i]:
-                                return 0
+                for x in scene['action']:
+                    for idx in self.verbs_start:
+                        if x.i==idx:
+                            return 0
         return 1
 
 
@@ -43,7 +41,7 @@ class ClearMetric:
             word = s['subject'][0]
             # Raw calculation
             start = word.i - word.sent.start
-            # COunt the number of punctiations
+            # Count the number of punctiations
             num_puncts = len([t for t in word.sent[:start] \
                             if t.pos_=='PUNCT'])
             return int((start - num_puncts) > 8)
@@ -71,6 +69,13 @@ class ClearMetric:
     def score_sents(self):
         scores = []
         for structure, story in zip(self.sents.structures, self.sents.stories):
+            
+            if structure:
+                subjects = [su for st in structure for su in st['subject']]
+                self.subjects_start = [su.i-su.sent.start for su in subjects]
+                verbs = [ve for st in structure for ve in st['verb']]
+                self.verbs_start = [ve.i-ve.sent.start for ve in verbs]
+            
             scores.append([
                 self.score_character(structure, story),
                 self.score_action(structure, story),

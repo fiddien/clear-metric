@@ -1,58 +1,43 @@
-Sent       0 : The Federalists' argument in regard to the destabilization of government by popular democracy was based on their belief in the tendency of factions to further their self interest at the expense of the common good.
-  Structures :
-    S - V    : was based - The Federalists argument
-  Stories    :
-    C - A    : destabilization - democracy
-    C - A    : further - factions
-  Scores     : [0, 0, 0, 0, 1]
-Sent       1 : Our lack of data prevented evaluation of UN actions in targeting funds to areas most in need of assistance.
-  Structures :
-    S - V    : prevented - Our lack
-  Stories    :
-    C - A    : prevented - lack
-    C - A    : lack - 
-    C - A    : targeting - 
-  Scores     : [0, 0, 0, 0, 0]
-Sent       0 : Our request is that you do a review of the data.
+Sentence     : Our request is that you do a review of the data.
   Structures :
     S - V    : is - Our request
     S - V    : do - you
   Stories    :
     C - A    : request - 
     C - A    : review - you
-  Scores     : [0, 0, 0, 0, 0]
-Sent       1 : The problem was the topic of our discussion.
+  Scores     : [0, 1, 0, 0, 0]
+Sentence     : The problem was the topic of our discussion.
   Structures :
     S - V    : was - The problem
   Stories    :
     C - A    : discussion - 
-  Scores     : [1, 0, 0, 0, 0]
-Sent       0 : There is opposition among many voters to nuclear power plants based on a belief in their threat to human health.
+  Scores     : [1, 1, 0, 0, 0]
+Sentence     : There is opposition among many voters to nuclear power plants based on a belief in their threat to human health.
   Structures :
     S - V    : is - There
   Stories    :
     C - A    : opposition - voters
     C - A    : belief - voters
     C - A    : threat - plants
-  Scores     : [0, 0, 0, 0, 0]
-Sent       1 : Growth in the market for electronic books is driven by the frequent preference among customers for their convenience and portability.
+  Scores     : [1, 1, 0, 0, 0]
+Sentence     : Growth in the market for electronic books is driven by the frequent preference among customers for their convenience and portability.
   Structures :
     S - V    : is driven - Growth
   Stories    :
     C - A    : driven - preference
     C - A    : preference - customers
-  Scores     : [0, 0, 0, 0, 1]
-Sent       0 : There is a belief among some researchers that consumers' choices in fast food restaurants are healthier because there are postings of nutrition information in menus.
+  Scores     : [1, 0, 0, 0, 1]
+Sentence     : There is a belief among some researchers that consumers' choices in fast food restaurants are healthier because there are postings of nutrition information in menus.
   Structures :
     S - V    : is - There
   Stories    :
     C - A    : belief - researchers
     C - A    : because - postings
-  Scores     : [0, 0, 0, 0, 0]
-Sent       1 : The design of the new roller coaster was more of a struggle for the engineers than had been their expectations.
+  Scores     : [1, 1, 0, 0, 0]
+Sentence     : The design of the new roller coaster was more of a struggle for the engineers than had been their expectations.
   Structures :
     S - V    : was - The design
   Stories    :
     C - A    : struggle - engineers
     C - A    : expectations - engineers
-  Scores     : [0, 0, 0, 0, 1]
+  Scores     : [1, 1, 0, 0, 1]
