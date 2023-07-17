@@ -30,14 +30,14 @@ def run_parsing(sents_batch):
     return scores, sents
 
 
-def sents_iter(start, end, batch_size):
+def sents_iter(start, end, batch_size=8, input_file_path=None, sentences=None):
 
-    if args.input_file:
+    if input_file_path:
         
         if end == -1:
             end = 9999999
 
-        with open(args.input_file, encoding='utf-8') as text_file:
+        with open(input_file_path, encoding='utf-8') as text_file:
             
             if start > 0:
                 for _ in range(start):
@@ -57,52 +57,31 @@ def sents_iter(start, end, batch_size):
                     batch_count += 1
                 rem_count -= batch_count
 
-                yield sents_batch, start_batch, start_batch+batch_count
+                yield sents_batch, start_batch, start_batch+batch_count-1
                 
     else:
-        sents = args.sentences.split('<sep>')
+        assert isinstance(sentences, str)
+
+        sents = sentences.split('<sep>')
+        if len(sents)==1:
+            sents = sentences.split('\n')
     
         if end == -1:
             end = len(sents)
         
         for start_batch in range(start, end, batch_size):
             end_batch = min(start_batch+batch_size, end, len(sents))
-            yield sents[start_batch:end_batch], start_batch, end_batch
+            yield sents[start_batch:end_batch], start_batch, end_batch-1
 
 
-def save_results(scores, sents, output_file, start_sent_num):
+def save_results(scores, sents, output_file=None, start_sent_num=0, batch_size=0):
     outputs = ''
-    for i, score in enumerate(scores):
-        out = ''
-        out += f"Sent {i:>7d} : {sents.amrs.graphs[i].metadata['snt']}\n"
-        out += f"  Scores     : {score}\n"
-
-        out += f"  Structures :\n"
-        if sents.structures[i]:
-            for structure in sents.structures[i]:
-                if structure:
-                    out += "    S - V   : {} - {}\n".format(
-                        ' '.join([t.text for t in structure['verb']]),
-                        ' '.join([t.text for t in structure['subject']])
-                    )
-        else: 
-            out += "    None\n"
-
-        out += f"  Stories    :\n"
-        if sents.stories[i]:
-            for story in sents.stories[i]:
-                if story:
-                    out += "    C - A   : {} - {}\n".format(
-                        ' '.join([t.text for t in story['action']]),
-                        ' '.join([t.text for t in story['character']])
-                    )
-        else: 
-            out += "    None\n"
-       
-        outputs += out
+    for sent, score in zip(sents, scores):
+        outputs += sent
+        outputs += f"  Scores     : {score}\n"
     
     if output_file:
-        mode = 'w' if start_sent_num<=args.batch_size else 'a'
+        mode = 'w' if start_sent_num<=batch_size else 'a'
         with open(output_file, mode, encoding='utf-8') as f:
             f.write(outputs)
     else:
@@ -113,9 +92,12 @@ def save_results(scores, sents, output_file, start_sent_num):
 if __name__ == '__main__':
     args = parser.parse_args()
     
-    for batch, i, j in sents_iter(args.start_from, args.end_at, args.batch_size):
+    sents_batch = sents_iter(
+        args.start_from, args.end_at, args.batch_size, args.input_file
+    )
+    for batch, i, j in sents_batch:
         start_time = time()
-        print("Processing sentence {} to {}".format(i, j-1))
+        print("Processing sentence {} to {}".format(i, j))
         scores, descriptions = run_parsing(batch)
-        save_results(scores, descriptions, args.output_file, i)
+        save_results(scores, descriptions, args.output_file, i, args.batch_size)
         print('Elapsed time:', time()-start_time)

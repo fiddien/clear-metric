@@ -7,6 +7,7 @@ spacy_model_name = 'en_core_web_md'
 nlp, stog = None, None
 
 def load_models():
+    # Lazy loader
     # benepar.download('benepar_en3')
     global nlp, stog
     if not nlp:
@@ -208,7 +209,7 @@ class GraphAligner:
                                                'character': target})
                         else:
                             # Only store the action if it is a PropBank frame
-                            if self._is_frame(source.concept):
+                            if self._is_frame(source[0].concept):
                                 candidates.append({'action': source, 
                                                    'character': []}
                                 )
@@ -255,6 +256,42 @@ class Sentence:
     def __len__(self):
         return len(self.docs)
 
+    
+    def __iter__(self):
+        self.i = 0
+        return self
+
+
+    def __next__(self):
+        i = self.i
+        if i == len(self.amrs.graphs):
+            raise StopIteration
+        
+        out = ''
+        out += f"Sentence     : {self.amrs.graphs[i].metadata['snt']}\n"
+        out += f"  Structures :\n"
+        if self.structures[i]:
+            for structure in self.structures[i]:
+                if structure:
+                    out += "    S - V    : {} - {}\n".format(
+                        ' '.join([t.text for t in structure['verb']]),
+                        ' '.join([t.text for t in structure['subject']])
+                    )
+        else: 
+            out += "    None\n"
+        out += f"  Stories    :\n"
+        if self.stories[i]:
+            for story in self.stories[i]:
+                if story:
+                    out += "    C - A    : {} - {}\n".format(
+                        ' '.join([t.text for t in story['action']]),
+                        ' '.join([t.text for t in story['character']])
+                    )
+        else: 
+            out += "    None\n"
+        self.i += 1
+        return out
+
 
     def get_sentences(self):
         return self.docs.sents
@@ -289,9 +326,9 @@ class Sentence:
         for verbs, subjects in zip(Verbs, Subjects):
             vs = []
             if verbs:
-                if len(verbs)<len(subjects):
+                if len(verbs) < len(subjects):
                     verbs = verbs * len(subjects)
-                elif len(verbs)>len(subjects):
+                elif len(verbs) > len(subjects):
                     subjects = subjects * len(verbs)
 
                 for v, s in zip(verbs, subjects):
@@ -310,8 +347,18 @@ class Sentence:
                         vs.append({'verb': v, 
                                    'subject': s, 
                                    'main': is_main(v)})
-                        
-            vs = sorted(vs, key=lambda x: x['main'], reverse=True)
+            
+            # Move the main clause to the front of the list
+            changed = False
+            for item in vs:
+                if item['main']:
+                    main_clause = item
+                    vs.remove(item)
+                    changed = True
+                    break
+            if changed:
+                vs = [main_clause] + vs
+
             structures.append(vs)
         return structures
 

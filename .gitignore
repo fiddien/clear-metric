@@ -1,8 +1,7 @@
-env/
+env*/
 data/
 experiments/
 *.tar.gz
 *.sh
-*.ipynb
 
 __pycache__/

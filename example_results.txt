@@ -1,84 +1,58 @@
-Sentence    0 : Once upon a time, as a walk through the woods was taking place on the part of Little Red Riding Hood, the Wolf's jump out from behind a tree occurred, causing her fright.
-  Action       : jump [id=26]
-  Verb         : occurred [id=(32, 32)]
-  Character    : Wolf [id=24]
-  Subject      : None [id=(0, 0)]
-  Scores       : [1, 1, 0, 0, 1]
-  Total sc.    : 3
-Sentence    1 : The Federalists' argument in regard to the destabilization of government by popular democracy was based on their belief in the tendency of factions to further their self interest at the expense of the common good.
-  Action       : argument [id=3]
-  Verb         : was based [id=(14, 15)]
-  Character    : Federalists [id=1]
-  Subject      : The Federalists ' argument in regard to the destabilization of government by popular democracy [id=(0, 13)]
-  Scores       : [0, 1, 1, 0, 0]
-  Total sc.    : 2
-Sentence    2 : Our lack of data prevented evaluation of UN actions in targeting funds to areas most in need of assistance.
-  Action       : prevented [id=4]
-  Verb         : prevented [id=(4, 4)]
-  Character    : lack [id=1]
-  Subject      : Our lack of data [id=(0, 3)]
-  Scores       : [0, 0, 0, 0, 0]
-  Total sc.    : 0
-Sentence    3 : Our request is that you do a review of the data.
-  Action       : request [id=1]
-  Verb         : is [id=(2, 2)]
-  Character    :  [id=None]
-  Subject      : Our request [id=(0, 1)]
-  Scores       : [1, 1, 0, 0, 0]
-  Total sc.    : 2
-Sentence    4 : The problem was the topic of our discussion.
-  Action       : discussion [id=7]
-  Verb         : was [id=(2, 2)]
-  Character    :  [id=None]
-  Subject      : The problem [id=(0, 1)]
-  Scores       : [1, 1, 0, 0, 0]
-  Total sc.    : 2
-Sentence    5 : There is opposition among many voters to nuclear power plants based on a belief in their threat to human health.
-  Action       : opposition [id=2]
-  Verb         : is [id=(1, 1)]
-  Character    : voters [id=5]
-  Subject      : There [id=(0, 0)]
-  Scores       : [1, 1, 0, 0, 0]
-  Total sc.    : 2
-Sentence    6 : Growth in the market for electronic books is driven by the frequent preference among customers for their convenience and portability.
-  Action       : driven [id=8]
-  Verb         : is driven [id=(7, 8)]
-  Character    : preference [id=12]
-  Subject      : Growth in the market for electronic books [id=(0, 6)]
-  Scores       : [1, 0, 0, 0, 0]
-  Total sc.    : 1
-Sentence    7 : There is a belief among some researchers that consumers' choices in fast food restaurants are healthier because there are postings of nutrition information in menus.
-  Action       : belief [id=3]
-  Verb         : is [id=(1, 1)]
-  Character    : researchers [id=6]
-  Subject      : There [id=(0, 0)]
-  Scores       : [1, 1, 0, 0, 0]
-  Total sc.    : 2
-Sentence    8 : The design of the new roller coaster was more of a struggle for the engineers than had been their expectations.
-  Action       : struggle [id=11]
-  Verb         : was [id=(7, 7)]
-  Character    : engineers [id=14]
-  Subject      : The design of the new roller coaster [id=(0, 6)]
-  Scores       : [1, 1, 0, 0, 0]
-  Total sc.    : 2
-Sentence    9 : Because of the student's preparation for the exam was thorough, none of the questions on it were a surprise.
-  Action       : Because [id=0]
-  Verb         : were [id=(18, 18)]
-  Character    : thorough [id=10]
-  Subject      : none of the questions on it [id=(12, 17)]
-  Scores       : [1, 1, 0, 1, 0]
-  Total sc.    : 3
-Sentence   10 : My suggestion is that our discussion of the issue be done with care.
-  Action       : suggestion [id=1]
-  Verb         : is [id=(2, 2)]
-  Character    :  [id=None]
-  Subject      : My suggestion [id=(0, 1)]
-  Scores       : [1, 1, 0, 0, 0]
-  Total sc.    : 2
-Sentence   11 : The automation of manufacturing, assembly, and shipping processes by corporations means the loss of jobs for many blue-collar workers.
-  Action       : automation [id=1]
-  Verb         : means [id=(12, 12)]
-  Character    : corporations [id=11]
-  Subject      : The automation of manufacturing [id=(0, 3)]
-  Scores       : [1, 1, 0, 0, 1]
-  Total sc.    : 3
+Sent       0 : The Federalists' argument in regard to the destabilization of government by popular democracy was based on their belief in the tendency of factions to further their self interest at the expense of the common good.
+  Structures :
+    S - V    : was based - The Federalists argument
+  Stories    :
+    C - A    : destabilization - democracy
+    C - A    : further - factions
+  Scores     : [0, 0, 0, 0, 1]
+Sent       1 : Our lack of data prevented evaluation of UN actions in targeting funds to areas most in need of assistance.
+  Structures :
+    S - V    : prevented - Our lack
+  Stories    :
+    C - A    : prevented - lack
+    C - A    : lack - 
+    C - A    : targeting - 
+  Scores     : [0, 0, 0, 0, 0]
+Sent       0 : Our request is that you do a review of the data.
+  Structures :
+    S - V    : is - Our request
+    S - V    : do - you
+  Stories    :
+    C - A    : request - 
+    C - A    : review - you
+  Scores     : [0, 0, 0, 0, 0]
+Sent       1 : The problem was the topic of our discussion.
+  Structures :
+    S - V    : was - The problem
+  Stories    :
+    C - A    : discussion - 
+  Scores     : [1, 0, 0, 0, 0]
+Sent       0 : There is opposition among many voters to nuclear power plants based on a belief in their threat to human health.
+  Structures :
+    S - V    : is - There
+  Stories    :
+    C - A    : opposition - voters
+    C - A    : belief - voters
+    C - A    : threat - plants
+  Scores     : [0, 0, 0, 0, 0]
+Sent       1 : Growth in the market for electronic books is driven by the frequent preference among customers for their convenience and portability.
+  Structures :
+    S - V    : is driven - Growth
+  Stories    :
+    C - A    : driven - preference
+    C - A    : preference - customers
+  Scores     : [0, 0, 0, 0, 1]
+Sent       0 : There is a belief among some researchers that consumers' choices in fast food restaurants are healthier because there are postings of nutrition information in menus.
+  Structures :
+    S - V    : is - There
+  Stories    :
+    C - A    : belief - researchers
+    C - A    : because - postings
+  Scores     : [0, 0, 0, 0, 0]
+Sent       1 : The design of the new roller coaster was more of a struggle for the engineers than had been their expectations.
+  Structures :
+    S - V    : was - The design
+  Stories    :
+    C - A    : struggle - engineers
+    C - A    : expectations - engineers
+  Scores     : [0, 0, 0, 0, 1]
