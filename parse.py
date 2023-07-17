@@ -1,16 +1,21 @@
+import spacy, benepar
 import amrlib
 from amrlib.graph_processing.annotator import add_lemmas, annotate_penman, load_spacy
 from amrlib.alignments.rbw_aligner import RBWAligner
-import spacy, benepar, nltk
 
 spacy_model_name = 'en_core_web_md'
-benepar.download('benepar_en3')
+nlp, stog = None, None
 
-nlp = spacy.load(spacy_model_name)
-nlp.add_pipe('benepar', config={'model': 'benepar_en3'})
-load_spacy(spacy_model_name)
-
-stog = amrlib.load_stog_model()
+def load_models():
+    # benepar.download('benepar_en3')
+    global nlp, stog
+    if not nlp:
+        nlp = spacy.load(spacy_model_name)
+        nlp.add_pipe('benepar', config={'model': 'benepar_en3'})
+        load_spacy(spacy_model_name)
+    if not stog:
+        stog = amrlib.load_stog_model()
+    return nlp, stog.parse_sents
 
 # === Semantic parsing happens here to determine the character and action of the sentence ===
 
@@ -24,7 +29,6 @@ class Node:
 
     def __repr__(self):
         return self.text
-
 
 class GraphAligner:
     def __init__(self, sents, graphs):
@@ -52,25 +56,34 @@ class GraphAligner:
         for sent, graph in zip(sents, graphs):
             tokens = [t for t in sent] if add_tokens else None
             penman_graph = add_lemmas(graph, snt_key='snt')
+            variables = penman_graph.variables()
             penman_graph = annotate_penman(penman_graph, 
                                            tokens=tokens)
             aligned_graph = RBWAligner.from_penman_w_json(penman_graph)
             nodes_alignment = {}
-
+            
             # Nodes that can be aligned to the strings/tokens
             for i, (align, token) in enumerate(zip(aligned_graph.alignments,
                                                    aligned_graph.tokens)):
+                
                 if align:
-                    concept, var = align.triple[-1], align.triple[0]
+                    if align.triple[2] in variables:
+                        # skip this general semantic relations
+                        continue
+                    
+                    var = align.triple[0]
+                    concept = align.triple[2]
+
                     if var not in nodes_alignment:
-                        nodes_alignment[var] = Node(
+                        nodes_alignment[var] = (Node(
                             i, var, concept, None, token
-                        )
+                        ), )
                     else:
-                        nodes_alignment[var] = [
-                            nodes_alignment[var],
+                        nodes_alignment[var] = (
+                            *nodes_alignment[var],
                             Node(i, var, concept, None, token)
-                        ]
+                        )
+                    nodes_alignment[var] = [*nodes_alignment[var]]
 
             penman_graphs.append(aligned_graph.get_penman_graph())
             alignments.append(nodes_alignment)
@@ -120,6 +133,10 @@ class GraphAligner:
         # return children
 
 
+    def _is_frame(self, concept):
+        return '-' in concept and concept[-1].isdigit()
+
+
     def get_actn_char(self):
         """
         Argument:
@@ -131,9 +148,8 @@ class GraphAligner:
             concept_map = self._get_concept_map(graph)
             role_map = self._get_role_map(graph)
             candidates = []
-
+            
             for (source, target), role in role_map.items():
-                pair = None
 
                 if source in aligned:
                     source = aligned[source]
@@ -141,49 +157,45 @@ class GraphAligner:
                     if role in [':ARG0']:
 
                         # When the node is an intermediete node
-                        rels = ['person', 'country', 'and']
-                        if concept_map[target] in rels:
-                            depth = 0
-                            children = self._get_children(graph, target)
+                        relations = ['person', 'country', 'and']
+                        if concept_map[target] in relations:
                             parents = self._get_children(graph, target)
                             parent = next(parents)
                             parent_role = parent[1]
+                            children = self._get_children(graph, target)
                             child = next(children, None)
 
                             while child:
                                 var, role = child
-                                # print('child', child, '| parent', parent)
                                 
                                 if (role in [':name', ':ARG0-of', ':ARG1-of']) \
                                 or (':op' in role) \
                                 or (role==':ARG2' and ':ARG0-of' in parent_role):
 
-                                    # print('  IN')
                                     if var in aligned:
 
-                                        # print('  ALIGNED', end='')
                                         if isinstance(aligned[var], list):
                                             target = aligned[var]
                                         else:
                                             target = [aligned[var]]
+                                            
                                         cand = {
-                                            'action': [source],
+                                            'action': source,
                                             'character': target
                                         }
+                                        
                                         if not candidates:
                                             candidates.append(cand)
                                         elif cand!=candidates[-1]:
                                             candidates.append(cand)
-                                        # print('     ', var, role)
+                                            
                                     else:
-                                        # print('  ELSE', var, role)
                                         parent_role = role
                                         children = self._get_children(graph, var)
                                 
-                                # print('   ', candidates)
                                 child = next(children, None)
+
                                 if child is None and parent:
-                                    # print('    (((((CHANGE)))))')
                                     parent = next(parents, None)
                                     if parent:
                                         var, parent_role = parent
@@ -192,19 +204,43 @@ class GraphAligner:
                                                     
                         elif target in aligned:
                             target = aligned[target]
-                            candidates.append(
-                                {'action': [source], 'character': [target]}
-                            )
+                            candidates.append({'action': source, 
+                                               'character': target})
+                        else:
+                            # Only store the action if it is a PropBank frame
+                            if self._is_frame(source.concept):
+                                candidates.append({'action': source, 
+                                                   'character': []}
+                                )
+
                     elif role==':manner' and target in aligned:
                         candidates[-1]['action'].append(aligned[target])
+            
+            # candidates = self._group_common_action(candidates)
 
             yield candidates
 
-
+    def _group_common_action(self, candidates):
+        chars = [(i, char) for i, cand in enumerate(candidates) \
+                 for char in cand['character']]
+        print(chars)
+        chars = sorted(chars, key=lambda x: x[1].i)
+        
+        prev_i, prev_char = chars[0]
+        for i, char in chars[1:]:
+            if char.i == prev_char.i + 1 \
+            :
+                candidates[prev_i]['character'].append(char)
+                print(candidates[i]['action'][0].i, candidates[prev_i]['action'][0].i)
+                print('(((((((IN)))))))')
+                del candidates[i]
+            prev_i, prev_char = i, char
+        return candidates
 # === Syntatic parsing happens here to analyse get the verb and subject of the sentence ===
 class Sentence:
-    def __init__(self, sentences, syntax_model=nlp,
-                 semantic_model=stog.parse_sents):
+    def __init__(self, sentences, syntax_model, semantic_model):
+        if not syntax_model and not semantic_model:
+            syntax_model, semantic_model = load_models()
 
         self.docs = self.parse_syntax(syntax_model, sentences)
         assert len(list(self.docs.sents)) == len(sentences)
@@ -344,6 +380,7 @@ class Sentence:
                             subject.append(gchild)
 
                 subject = list(sorted(subject, key=lambda x: x.i))
+
                 # Delete trailing punctuation(s)
                 if subject[0].pos_ == 'PUNCT':
                     subject = subject[1:]

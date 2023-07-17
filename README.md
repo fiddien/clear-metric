@@ -50,9 +50,15 @@ mv env/Lib/site-packages/amrlib/data/model_parse_spring-v0_1_0 env/Lib/site-pack
 
 ### Prepare the syntactic parser model (spaCy)
 
-Download the spaCy model.
+Download the spaCy models.
 ```
 python -m spacy download en_core_web_md
+```
+
+We use [Berkeley Neural Parser](https://pypi.org/project/benepar/). Start python and download the model.
+```
+import benepar
+benepar.download('benepar_en3')
 ```
 
 ## Using the script
