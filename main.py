@@ -1,7 +1,8 @@
 import argparse
-from parse import Sentence, load_models
+from parse import Sentence
 from score import ClearMetric
 from time import time
+import json, os
 
 parser = argparse.ArgumentParser(description="",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -24,7 +25,7 @@ parser.add_argument("-E", "--end-at", type=int, default=-1,
 
 def run_parsing(sents_batch):
     
-    sents = Sentence(sents_batch, *load_models())
+    sents = Sentence(sents_batch)
     metric = ClearMetric(sents)
     scores = metric.score_sents()
     return scores, sents
@@ -75,14 +76,19 @@ def sents_iter(start, end, batch_size=8, input_file_path=None, sentences=None):
 
 
 def save_results(scores, sents, output_file=None, start_sent_num=0, batch_size=0):
-    outputs = ''
-    for sent, score in zip(sents, scores):
-        outputs += sent
-        outputs += f"  Scores     : {score}\n"
+    outputs = []
     
+    for i, out in enumerate(sents.to_json_format(scores)):
+        # outputs += sent
+        # outputs += f"  Scores     : {score}\n"
+        out['id'] = start_sent_num + i
+        outputs.append(out)
+        
     if output_file:
-        mode = 'w' if start_sent_num<=batch_size else 'a'
+        # mode = 'w' if start_sent_num<=batch_size else 'a'
+        mode = 'a'
         with open(output_file, mode, encoding='utf-8') as f:
+            outputs = json.dumps(outputs)
             f.write(outputs)
     else:
         print(outputs)
@@ -99,5 +105,14 @@ if __name__ == '__main__':
         start_time = time()
         print("Processing sentence {} to {}".format(i, j))
         scores, descriptions = run_parsing(batch)
-        save_results(scores, descriptions, args.output_file, i, args.batch_size)
+        save_results(scores, descriptions, args.output_file+'.temp', i, args.batch_size)
         print('Elapsed time:', time()-start_time)
+
+    # Post-process the output file
+    if args.output_file:
+        with open(args.output_file+'.temp', 'r') as infile, \
+             open(args.output_file, 'w') as outfile:
+            data = infile.read()
+            data = data.replace("][", ",")
+            outfile.write(data)
+        os.remove(args.output_file+'.temp')

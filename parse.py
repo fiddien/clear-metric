@@ -7,17 +7,25 @@ import json
 spacy_model_name = 'en_core_web_md'
 nlp, stog = None, None
 
-def load_models():
+def load_models(mode=['spacy', 'amr']):
     # Lazy loader
     # benepar.download('benepar_en3')
-    global nlp, stog
-    if not nlp:
-        nlp = spacy.load(spacy_model_name)
-        nlp.add_pipe('benepar', config={'model': 'benepar_en3'})
-        load_spacy(spacy_model_name)
-    if not stog:
-        stog = amrlib.load_stog_model()
-    return nlp, stog.parse_sents
+    if 'spacy' in mode:
+        global nlp
+        if not nlp:
+            model = spacy.load(spacy_model_name)
+            model.add_pipe('benepar', config={'model': 'benepar_en3'})
+            load_spacy(spacy_model_name)
+            nlp = model
+        return model
+
+    if 'amr' in mode:
+        global stog
+        if not stog:
+            model = amrlib.load_stog_model()
+            model = model.parse_sents
+            stog = model
+        return model
 
 # === Semantic parsing happens here to determine the character and action of the sentence ===
 
@@ -186,13 +194,16 @@ class GraphAligner:
 
 # === Syntatic parsing happens here to analyse get the verb and subject of the sentence ===
 class Sentence:
-    def __init__(self, sentences, syntax_model, semantic_model):
-        if not syntax_model and not semantic_model:
-            syntax_model, semantic_model = load_models()
+    def __init__(self, sentences, syntax_model=None, semantic_model=None):
+        if not syntax_model:
+            syntax_model = load_models('spacy')
 
         self.docs = self.parse_syntax(syntax_model, sentences)
         assert len(list(self.docs.sents)) == len(sentences)
         self.structures = self.get_structures()
+
+        if not semantic_model:
+            semantic_model = load_models('amr')
 
         self.amrs = self.parse_semantic(semantic_model, sentences)
         self.stories = list(self.amrs.get_actn_char())
@@ -305,7 +316,7 @@ class Sentence:
                             'end': verb_end,
                         }
                     })
-            yield {'sent': sent, 'score': score, 'labels': result}
+            yield {'sent': sent.text, 'score': score, 'labels': result}
         
 
     def get_labels(self):
