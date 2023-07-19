@@ -17,7 +17,9 @@ def load_models(mode=['spacy', 'amr']):
             model.add_pipe('benepar', config={'model': 'benepar_en3'})
             load_spacy(spacy_model_name)
             nlp = model
-        return model
+            return model
+        else:
+            return nlp
 
     if 'amr' in mode:
         global stog
@@ -25,7 +27,9 @@ def load_models(mode=['spacy', 'amr']):
             model = amrlib.load_stog_model()
             model = model.parse_sents
             stog = model
-        return model
+            return model
+        else:
+            return stog
 
 # === Semantic parsing happens here to determine the character and action of the sentence ===
 
