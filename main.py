@@ -93,7 +93,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     sents_batch = sents_iter(
-        args.start_from, args.end_at, args.batch_size, args.input_file
+        args.start_from, args.end_at, args.batch_size, args.input_file, args.sentences
     )
     for batch, i, j in sents_batch:
         start_time = time()

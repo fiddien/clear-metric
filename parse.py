@@ -244,7 +244,7 @@ class Sentence:
 
 
     def parse_semantic(self, semantic_model, sentences):
-        return GraphAligner(self.docs, semantic_model(sentences))
+        return GraphAligner(semantic_model(sentences), self.docs)
 
 
     def to_json(self):
@@ -354,7 +354,8 @@ class Sentence:
             yield subjects
 
 
-    def _get_noun(self, verb):
+    @staticmethod
+    def _get_noun(verb):
         dependents = [
             'nsubj',     # active sentence
             'nsubjpass', # passive sentence
@@ -396,7 +397,8 @@ class Sentence:
         return subject
 
 
-    def _group_consecutive_tokens(self, seq):
+    @staticmethod
+    def _group_consecutive_tokens(seq):
         """seq: (list) tokens"""
         if not seq:
             return seq
