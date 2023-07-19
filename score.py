@@ -7,20 +7,18 @@ class ClearMetric:
 
     def score_character(self, structure, story):
         if structure and story:
-            for scene in story:
-                for x in scene['character']:
-                    for idx in self.subjects_start:
-                        if x.i==idx:
+                for ch_idx in self.characters_idx:
+                    for su_idx in self.subjects_idx:
+                        if ch_idx==su_idx:
                             return 0
         return 1
 
 
     def score_action(self, structure, story):
         if structure and story:
-            for scene in story:
-                for x in scene['action']:
-                    for idx in self.verbs_start:
-                        if x.i==idx:
+                for ac_idx in self.actions_idx:
+                    for ve_idx in self.verbs_idx:
+                        if ac_idx==ve_idx:
                             return 0
         return 1
 
@@ -72,9 +70,16 @@ class ClearMetric:
             
             if structure:
                 subjects = [su for st in structure for su in st['subject']]
-                self.subjects_start = [su.i-su.sent.start for su in subjects]
+                self.subjects_idx = [su.i-su.sent.start for su in subjects]
                 verbs = [ve for st in structure for ve in st['verb']]
-                self.verbs_start = [ve.i-ve.sent.start for ve in verbs]
+                self.verbs_idx = [ve.i-ve.sent.start for ve in verbs]
+            
+            if story:
+                characters = [ch for st in story for ch in st['character']]
+                print(characters)
+                self.characters_idx = [ch.i for ch in characters]
+                actions = [ac for st in story for ac in st['action']]
+                self.actions_idx = [ac.i for ac in actions]
             
             scores.append([
                 self.score_character(structure, story),

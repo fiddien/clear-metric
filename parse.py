@@ -2,6 +2,7 @@ import spacy, benepar
 import amrlib
 from amrlib.graph_processing.annotator import add_lemmas, annotate_penman, load_spacy
 from amrlib.alignments.rbw_aligner import RBWAligner
+import json
 
 spacy_model_name = 'en_core_web_md'
 nlp, stog = None, None
@@ -21,27 +22,34 @@ def load_models():
 # === Semantic parsing happens here to determine the character and action of the sentence ===
 
 class Node:
-    def __init__(self, i=None, var=None, concept=None, role=None, text=''):
+    def __init__(self, i, var, concept=None, role=None, text='',
+                 start=None, end=None):
         self.i = i
-        self.role = role
+        self.start = start
+        self.end = end
+        
         self.text = text
         self.var = var
         self.concept = concept
+        self.role = role
 
     def __repr__(self):
         return self.text
+    
 
 class GraphAligner:
-    def __init__(self, sents, graphs):
+    def __init__(self, graphs, sents=[]):
+        assert isinstance(graphs, list)
+        assert isinstance(graphs[0], str)
+        self.graphs = graphs
+        
         if isinstance(sents, spacy.tokens.doc.Doc):
-            self.align, self.graphs = self.align_nodes(sents.sents, graphs, True)
+            self.align_var = self.align_nodes(sents)
         else:
-            assert isinstance(graphs, list)
-            assert isinstance(graphs[0], str)
-            self.align, self.graphs = self.align_nodes(sents, graphs)
+            self.align_var = self.align_nodes()
 
 
-    def align_nodes(self, sents, graphs, add_tokens=None):
+    def align_nodes(self, sents=[], add_tokens=False):
         """
         Align the nodes of each AMR graphs to a token in the respective sentence string.
         Argument:
@@ -51,16 +59,22 @@ class GraphAligner:
             accompanied by information about the tokens, id of the tokens (token number)
             and each corresponding variable name
         """
-        # assert isinstance(graphs, str)
 
-        alignments, penman_graphs = [], []
-        for sent, graph in zip(sents, graphs):
+        alignments = []
+        if sents:
+            iter = zip(self.graphs, sents)
+        else:
+            iter = zip(self.graphs, [[]]*len(self.graphs))
+            
+        for idx, (graph_str, sent) in enumerate(iter):
+            
             tokens = [t for t in sent] if add_tokens else None
-            penman_graph = add_lemmas(graph, snt_key='snt')
-            variables = penman_graph.variables()
+
+            penman_graph = add_lemmas(graph_str, snt_key='snt')
             penman_graph = annotate_penman(penman_graph, 
                                            tokens=tokens)
             aligned_graph = RBWAligner.from_penman_w_json(penman_graph)
+            
             nodes_alignment = {}
             
             # Nodes that can be aligned to the strings/tokens
@@ -68,175 +82,102 @@ class GraphAligner:
                                                    aligned_graph.tokens)):
                 
                 if align:
-                    if align.triple[2] in variables:
-                        # skip this general semantic relations
-                        continue
-                    
-                    var = align.triple[0]
-                    concept = align.triple[2]
+                    var = align.triple[0] if align.is_concept() else align.triple[1]
+                    role = align.triple[1] if align.is_role() else None
+                    concept = align.triple[2] if align.is_concept() else None
 
                     if var not in nodes_alignment:
-                        nodes_alignment[var] = (Node(
-                            i, var, concept, None, token
-                        ), )
+                        nodes_alignment[var] = [
+                            Node(i, var, concept, role, token)
+                        ]
                     else:
-                        nodes_alignment[var] = (
-                            *nodes_alignment[var],
-                            Node(i, var, concept, None, token)
+                        nodes_alignment[var].append(
+                            Node(i, var, concept, role, token)
                         )
-                    nodes_alignment[var] = [*nodes_alignment[var]]
-
-            penman_graphs.append(aligned_graph.get_penman_graph())
+                    
+            self.graphs[idx] = aligned_graph.get_penman_graph()
             alignments.append(nodes_alignment)
 
+        return alignments
 
-        return alignments, penman_graphs
-
-
-    def _get_concept_map(self, graph):
+    
+    def _get_role_map(self, idx):
         """
-        Create a dictionary with AMR graph variables as the keys
-        and their corresponding concept as the values.
+        Create a dict of dict of relations within the AMR graph.
+        The first keys are the source nodes. The second keys are the target nodes.
+        The values are the relation between the nodes.
         Argument:
-            graph: (penman.graph)
-        Return:
-            (dict) that contains {variable1: concept1, variable2: concept2}
-            Example: {'w': 'wants-01'}
-        """
-        return {x.source: x.target for x in graph.instances()}
-
-
-    def _get_role_map(self, graph):
-        """
-        Create a dictionary with tuples of two neighboring AMR graph nodes as the keys
-        and their connection/role as the values.
-        Argument:
-            graph: (penman.graph)
+            idx: (int) index number of the graph
         Return:
             dictionary: {(source node, target node): role}
         """
-        return {(e.source, e.target): e.role for e in graph.edges()}
+        relations = {}
+        for edge in self.graphs[idx].edges():
+            if edge.source not in relations:
+                relations[edge.source] = {edge.target: edge.role}
+            else:
+                relations[edge.source][edge.target] = edge.role
+        return relations
 
 
-    def _get_children(self, graph, var):
-        """
-        Return the first child of a node.
-        Arguments:
-            graph: a Penman graph
-            var: (str) the variable name of the node whose children wants to be returned
-        Return:
-            children: (list) of (child_target_node, role)
-        """
-        children = [(t, r) for (s, r, t) in graph.triples \
-                    if s==var and r!=':instance']
-        for child in children:
-            yield child
-        # return children
+    @staticmethod
+    def _check_alignment(alignment, role, v1, v2):
 
+        if role[v1][v2]==':ARG0':
+            
+            # Check if v1 and v2 are aligned
+            if v1 in alignment: 
+                
+                if v2 in alignment: 
+                    # Return both nodes' alignments
+                    return alignment[v1], alignment[v2]
+                else: 
+                    # v2 is not aligned, check its children
+                    if v2 in role:
+                        # Iterate through v2's children nodes
+                        for v2_child in role[v2]: 
+                            if v2_child in alignment:
+                                return alignment[v1], alignment[v2_child]
+        
+        elif role[v1][v2]==':ARG0-of':
+            
+            # Check if v1 and v2 are aligned
+            if v1 in alignment: 
 
-    def _is_frame(self, concept):
-        return '-' in concept and concept[-1].isdigit()
-
+                if v2 in alignment: 
+                    # Return both nodes' alignments
+                    return alignment[v2], alignment[v1]
+                else: 
+                    # v2 is not aligned, check its children?
+                    pass
+        
+        return None, None
+                        
 
     def get_actn_char(self):
         """
-        Argument:
-            graph: (penman.graph)
         Return:
             (list) candidates of action and character pairs
         """
-        for aligned, graph in zip(self.align, self.graphs):
-            concept_map = self._get_concept_map(graph)
-            role_map = self._get_role_map(graph)
+        for idx, aligned in enumerate(self.align_var):
+            
+            role = self._get_role_map(idx)
             candidates = []
             
-            for (source, target), role in role_map.items():
+            for source in role.keys():
+                
+                for target in role[source]:
 
-                if source in aligned:
-                    source = aligned[source]
-
-                    if role in [':ARG0']:
-
-                        # When the node is an intermediete node
-                        relations = ['person', 'country', 'and']
-                        if concept_map[target] in relations:
-                            parents = self._get_children(graph, target)
-                            parent = next(parents)
-                            parent_role = parent[1]
-                            children = self._get_children(graph, target)
-                            child = next(children, None)
-
-                            while child:
-                                var, role = child
-                                
-                                if (role in [':name', ':ARG0-of', ':ARG1-of']) \
-                                or (':op' in role) \
-                                or (role==':ARG2' and ':ARG0-of' in parent_role):
-
-                                    if var in aligned:
-
-                                        if isinstance(aligned[var], list):
-                                            target = aligned[var]
-                                        else:
-                                            target = [aligned[var]]
-                                            
-                                        cand = {
-                                            'action': source,
-                                            'character': target
-                                        }
-                                        
-                                        if not candidates:
-                                            candidates.append(cand)
-                                        elif cand!=candidates[-1]:
-                                            candidates.append(cand)
-                                            
-                                    else:
-                                        parent_role = role
-                                        children = self._get_children(graph, var)
-                                
-                                child = next(children, None)
-
-                                if child is None and parent:
-                                    parent = next(parents, None)
-                                    if parent:
-                                        var, parent_role = parent
-                                        children = self._get_children(graph, var)
-                                        child = next(children, None)
-                                                    
-                        elif target in aligned:
-                            target = aligned[target]
-                            candidates.append({'action': source, 
-                                               'character': target})
-                        else:
-                            # Only store the action if it is a PropBank frame
-                            if self._is_frame(source[0].concept):
-                                candidates.append({'action': source, 
-                                                   'character': []}
-                                )
-
-                    elif role==':manner' and target in aligned:
-                        candidates[-1]['action'].append(aligned[target])
-            
-            # candidates = self._group_common_action(candidates)
-
+                    act, char = self._check_alignment(aligned, role, source, target)
+                    if act:
+                        candidates.append({
+                                'action': act, 
+                                'character': char
+                            })
+                    
             yield candidates
 
-    def _group_common_action(self, candidates):
-        chars = [(i, char) for i, cand in enumerate(candidates) \
-                 for char in cand['character']]
-        print(chars)
-        chars = sorted(chars, key=lambda x: x[1].i)
-        
-        prev_i, prev_char = chars[0]
-        for i, char in chars[1:]:
-            if char.i == prev_char.i + 1 \
-            :
-                candidates[prev_i]['character'].append(char)
-                print(candidates[i]['action'][0].i, candidates[prev_i]['action'][0].i)
-                print('(((((((IN)))))))')
-                del candidates[i]
-            prev_i, prev_char = i, char
-        return candidates
+
 # === Syntatic parsing happens here to analyse get the verb and subject of the sentence ===
 class Sentence:
     def __init__(self, sentences, syntax_model, semantic_model):
@@ -250,7 +191,6 @@ class Sentence:
         self.amrs = self.parse_semantic(semantic_model, sentences)
         self.stories = list(self.amrs.get_actn_char())
 
-        self.analyse = lambda: self.analyse()
 
 
     def __len__(self):
@@ -307,10 +247,15 @@ class Sentence:
         return GraphAligner(self.docs, semantic_model(sentences))
 
 
-    def annotation(self):
-        return self.structures + self.stories
+    def to_json(self):
+        labels = self.get_labels()
+        raise NotImplemented
         
 
+    def get_labels(self):
+        return self.structures + self.stories
+
+    
     def get_structures(self):
 
         def is_main(verb):
@@ -374,13 +319,17 @@ class Sentence:
             'ccomp',
         ]
         for sent in list(self.docs.sents):
+            # Capture the case which theire is no verb/auxilary word
             if sent.root.pos_ not in ['VERB', 'AUX']:
                 yield []
 
             verbs = [sent.root]
+            # Go through the dependents of the root
             for child in sent.root.children:
+                # Capture the surrounding words
                 if child.dep_ in dependents and child.pos_!='NOUN':
                     verbs.append(child)
+                # Capture conjugate verbs
                 elif child.dep_=='conj' and child.pos_=='VERB':
                     verbs.append(child)
 
@@ -410,7 +359,6 @@ class Sentence:
             'nsubj',     # active sentence
             'nsubjpass', # passive sentence
             'expl',      # captures an existential *there* or *it* in extraposition constructions
-            'npadvmod',
         ]
         subject = []
         for token in verb.children:
