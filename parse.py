@@ -69,18 +69,20 @@ class GraphAligner:
         for idx, (graph_str, sent) in enumerate(iter):
             
             tokens = [t for t in sent] if add_tokens else None
-
             penman_graph = add_lemmas(graph_str, snt_key='snt')
             penman_graph = annotate_penman(penman_graph, 
                                            tokens=tokens)
             aligned_graph = RBWAligner.from_penman_w_json(penman_graph)
+            self.graphs[idx] = aligned_graph.get_penman_graph()
+            sent = penman_graph.metadata['snt']
             
             nodes_alignment = {}
-            
+            start_idx = 0
             # Nodes that can be aligned to the strings/tokens
             for i, (align, token) in enumerate(zip(aligned_graph.alignments,
                                                    aligned_graph.tokens)):
-                
+                end_idx = start_idx + len(token)
+
                 if align:
                     var = align.triple[0] if align.is_concept() else align.triple[1]
                     role = align.triple[1] if align.is_role() else None
@@ -88,14 +90,18 @@ class GraphAligner:
 
                     if var not in nodes_alignment:
                         nodes_alignment[var] = [
-                            Node(i, var, concept, role, token)
+                            Node(i, var, concept, role, token, 
+                                 start_idx, end_idx)
                         ]
                     else:
                         nodes_alignment[var].append(
-                            Node(i, var, concept, role, token)
+                            Node(i, var, concept, role, token,
+                                 start_idx, end_idx)
                         )
-                    
-            self.graphs[idx] = aligned_graph.get_penman_graph()
+                
+                start_idx += sent[end_idx:end_idx+2].count(' ')
+                start_idx = end_idx + 1
+
             alignments.append(nodes_alignment)
 
         return alignments
@@ -214,8 +220,8 @@ class Sentence:
             for structure in self.structures[i]:
                 if structure:
                     out += "    S - V    : {} - {}\n".format(
+                        ' '.join([t.text for t in structure['subject']]),
                         ' '.join([t.text for t in structure['verb']]),
-                        ' '.join([t.text for t in structure['subject']])
                     )
         else: 
             out += "    None\n"
@@ -224,8 +230,8 @@ class Sentence:
             for story in self.stories[i]:
                 if story:
                     out += "    C - A    : {} - {}\n".format(
+                        ' '.join([t.text for t in story['character']]),
                         ' '.join([t.text for t in story['action']]),
-                        ' '.join([t.text for t in story['character']])
                     )
         else: 
             out += "    None\n"
@@ -247,22 +253,76 @@ class Sentence:
         return GraphAligner(semantic_model(sentences), self.docs)
 
 
-    def to_json(self):
-        labels = self.get_labels()
-        raise NotImplemented
+    def to_json_format(self, scores=None):
+
+        if not scores:
+            scores = [None] * len(self)
+    
+        for sent, labels, score in zip(self.get_sentences(), self.get_labels(), scores):
+            result = []
+            for item in labels:
+                if 'character' in item:
+                    char = ' '.join([t.text for t in item['character']])
+                    char_start = item['character'][0].start
+                    char_end = item['character'][-1].end
+                    
+                    actn = ' '.join([t.text for t in item['action']])
+                    actn_start = item['action'][0].start
+                    actn_end = item['character'][-1].end
+
+                    result.append({
+                        'character': {
+                            'text': char,
+                            'start': char_start,
+                            'end': char_end,
+                        },
+                        'action': {
+                            'text': actn,
+                            'start': actn_start,
+                            'end': actn_end,
+                        }
+                    })
+                
+                elif 'subject' in item:
+                    first_word = item['subject'][0].sent[0]
+                    subj = ' '.join([t.text for t in item['subject']])
+                    subj_start = item['subject'][0].idx - first_word.idx
+                    subj_end = subj_start + len(subj)
+                    
+                    verb = ' '.join([t.text for t in item['verb']])
+                    verb_start = item['verb'][0].idx - first_word.idx
+                    verb_end = verb_start + len(verb)
+
+                    result.append({
+                        'subject': {
+                            'text': subj,
+                            'start': subj_start,
+                            'end': subj_end,
+                        },
+                        'verb': {
+                            'text': verb,
+                            'start': verb_start,
+                            'end': verb_end,
+                        }
+                    })
+            yield {'sent': sent, 'score': score, 'labels': result}
         
 
     def get_labels(self):
-        return self.structures + self.stories
+        for structure, story in zip(self.structures, self.stories):
+            yield structure + story
 
+
+    @staticmethod
+    def is_main(verb):
+        for token in verb:
+            if token.dep_=='ROOT':
+                return True
+        return False
     
+
     def get_structures(self):
 
-        def is_main(verb):
-            for token in verb:
-                if token.dep_=='ROOT':
-                    return True
-            return False
         
         Verbs = [v for v in self.get_verbs()]
         Subjects = [s for s in self.get_subjects(Verbs)]
@@ -282,16 +342,16 @@ class Sentence:
                             
                             vs.append({'verb': v, 
                                        'subject': s_, 
-                                       'main': is_main(v)})
+                                       'main': self.is_main(v)})
                     elif isinstance(v[0], list) and len(v)>1:
                         for v_ in v:
                             vs.append({'verb': v_, 
                                        'subject': s, 
-                                       'main': is_main(v_)})
+                                       'main': self.is_main(v_)})
                     else:
                         vs.append({'verb': v, 
                                    'subject': s, 
-                                   'main': is_main(v)})
+                                   'main': self.is_main(v)})
             
             # Move the main clause to the front of the list
             changed = False
@@ -313,7 +373,7 @@ class Sentence:
         dependents = [
             'aux',
             'auxpass',
-            'advmod',
+            # 'advmod',
             'prt',
             'neg',
             'ccomp',

@@ -70,17 +70,17 @@ class ClearMetric:
             
             if structure:
                 subjects = [su for st in structure for su in st['subject']]
-                self.subjects_idx = [su.i-su.sent.start for su in subjects]
+                self.subjects_idx = [su.idx-su.sent[0].idx for su in subjects]
                 verbs = [ve for st in structure for ve in st['verb']]
-                self.verbs_idx = [ve.i-ve.sent.start for ve in verbs]
+                self.verbs_idx = [ve.idx-ve.sent[0].idx for ve in verbs]
+                
             
             if story:
                 characters = [ch for st in story for ch in st['character']]
-                print(characters)
-                self.characters_idx = [ch.i for ch in characters]
+                self.characters_idx = [ch.start for ch in characters]
                 actions = [ac for st in story for ac in st['action']]
-                self.actions_idx = [ac.i for ac in actions]
-            
+                self.actions_idx = [ac.start for ac in actions]
+
             scores.append([
                 self.score_character(structure, story),
                 self.score_action(structure, story),
