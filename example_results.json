@@ -1,0 +1,528 @@
+[
+  {
+    "sent": "Once upon a time, as a walk through the woods was taking place on the part of Little Red Riding Hood, the Wolf's jump out from behind a tree occurred, causing her fright.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "character": {
+          "text": "jump",
+          "start": 116,
+          "end": 120
+        },
+        "action": {
+          "text": "causing",
+          "start": 155,
+          "end": 120
+        }
+      },
+      {
+        "character": {
+          "text": "Wolf",
+          "start": 108,
+          "end": 112
+        },
+        "action": {
+          "text": "jump",
+          "start": 116,
+          "end": 112
+        }
+      },
+      {
+        "character": {
+          "text": "jump",
+          "start": 116,
+          "end": 120
+        },
+        "action": {
+          "text": "fright",
+          "start": 167,
+          "end": 120
+        }
+      },
+      {
+        "character": {
+          "text": "Little Red Riding Hood",
+          "start": 79,
+          "end": 101
+        },
+        "action": {
+          "text": "walk",
+          "start": 24,
+          "end": 101
+        }
+      }
+    ],
+    "id": 0
+  },
+  {
+    "sent": "Once upon a time, Little Red Riding Hood was walking through woods, when the Wolf jumped out from behind a tree and frightened her.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "Riding Hood",
+          "start": 29,
+          "end": 40
+        },
+        "verb": {
+          "text": "was walking",
+          "start": 41,
+          "end": 52
+        }
+      },
+      {
+        "character": {
+          "text": "Little Red Riding Hood",
+          "start": 19,
+          "end": 41
+        },
+        "action": {
+          "text": "walking",
+          "start": 46,
+          "end": 41
+        }
+      },
+      {
+        "character": {
+          "text": "Wolf",
+          "start": 79,
+          "end": 83
+        },
+        "action": {
+          "text": "jumped",
+          "start": 84,
+          "end": 83
+        }
+      },
+      {
+        "character": {
+          "text": "Wolf",
+          "start": 79,
+          "end": 83
+        },
+        "action": {
+          "text": "frightened",
+          "start": 118,
+          "end": 83
+        }
+      }
+    ],
+    "id": 1
+  },
+  {
+    "sent": "The Federalists' argument in regard to the destabilization of government by popular democracy was based on their belief in the tendency of factions to further their self interest at the expense of the common good.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      1
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "The Federalists argument",
+          "start": 0,
+          "end": 24
+        },
+        "verb": {
+          "text": "was based",
+          "start": 94,
+          "end": 103
+        }
+      },
+      {
+        "character": {
+          "text": "democracy",
+          "start": 85,
+          "end": 94
+        },
+        "action": {
+          "text": "destabilization",
+          "start": 44,
+          "end": 94
+        }
+      },
+      {
+        "character": {
+          "text": "factions",
+          "start": 140,
+          "end": 148
+        },
+        "action": {
+          "text": "further",
+          "start": 152,
+          "end": 148
+        }
+      }
+    ],
+    "id": 2
+  },
+  {
+    "sent": "Our lack of data prevented evaluation of UN actions in targeting funds to areas most in need of assistance.",
+    "score": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "Our lack",
+          "start": 0,
+          "end": 8
+        },
+        "verb": {
+          "text": "prevented",
+          "start": 17,
+          "end": 26
+        }
+      },
+      {
+        "character": {
+          "text": "lack",
+          "start": 4,
+          "end": 8
+        },
+        "action": {
+          "text": "prevented",
+          "start": 17,
+          "end": 8
+        }
+      },
+      {
+        "character": {
+          "text": "UN",
+          "start": 41,
+          "end": 43
+        },
+        "action": {
+          "text": "targeting",
+          "start": 55,
+          "end": 43
+        }
+      },
+      {
+        "character": {
+          "text": "areas",
+          "start": 74,
+          "end": 79
+        },
+        "action": {
+          "text": "need",
+          "start": 88,
+          "end": 79
+        }
+      }
+    ],
+    "id": 3
+  },
+  {
+    "sent": "Our request is that you do a review of the data.",
+    "score": [
+      0,
+      1,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "Our request",
+          "start": 0,
+          "end": 11
+        },
+        "verb": {
+          "text": "is",
+          "start": 12,
+          "end": 14
+        }
+      },
+      {
+        "subject": {
+          "text": "you",
+          "start": 20,
+          "end": 23
+        },
+        "verb": {
+          "text": "do",
+          "start": 24,
+          "end": 26
+        }
+      },
+      {
+        "character": {
+          "text": "you",
+          "start": 20,
+          "end": 23
+        },
+        "action": {
+          "text": "review",
+          "start": 29,
+          "end": 23
+        }
+      }
+    ],
+    "id": 4
+  },
+  {
+    "sent": "The problem was the topic of our discussion.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "The problem",
+          "start": 0,
+          "end": 11
+        },
+        "verb": {
+          "text": "was",
+          "start": 12,
+          "end": 15
+        }
+      }
+    ],
+    "id": 5
+  },
+  {
+    "sent": "There is opposition among many voters to nuclear power plants based on a belief in their threat to human health.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "There",
+          "start": 0,
+          "end": 5
+        },
+        "verb": {
+          "text": "is",
+          "start": 6,
+          "end": 8
+        }
+      },
+      {
+        "character": {
+          "text": "voters",
+          "start": 31,
+          "end": 37
+        },
+        "action": {
+          "text": "opposition",
+          "start": 9,
+          "end": 37
+        }
+      },
+      {
+        "character": {
+          "text": "plants",
+          "start": 55,
+          "end": 61
+        },
+        "action": {
+          "text": "power",
+          "start": 49,
+          "end": 61
+        }
+      },
+      {
+        "character": {
+          "text": "voters",
+          "start": 31,
+          "end": 37
+        },
+        "action": {
+          "text": "belief",
+          "start": 73,
+          "end": 37
+        }
+      },
+      {
+        "character": {
+          "text": "plants",
+          "start": 55,
+          "end": 61
+        },
+        "action": {
+          "text": "threat",
+          "start": 89,
+          "end": 61
+        }
+      }
+    ],
+    "id": 6
+  },
+  {
+    "sent": "Growth in the market for electronic books is driven by the frequent preference among customers for their convenience and portability.",
+    "score": [
+      1,
+      0,
+      0,
+      0,
+      1
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "Growth",
+          "start": 0,
+          "end": 6
+        },
+        "verb": {
+          "text": "is driven",
+          "start": 42,
+          "end": 51
+        }
+      },
+      {
+        "character": {
+          "text": "preference",
+          "start": 68,
+          "end": 78
+        },
+        "action": {
+          "text": "driven",
+          "start": 45,
+          "end": 78
+        }
+      },
+      {
+        "character": {
+          "text": "customers",
+          "start": 85,
+          "end": 94
+        },
+        "action": {
+          "text": "preference",
+          "start": 68,
+          "end": 94
+        }
+      }
+    ],
+    "id": 7
+  },
+  {
+    "sent": "There is a belief among some researchers that consumers' choices in fast food restaurants are healthier because there are postings of nutrition information in menus.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "There",
+          "start": 0,
+          "end": 5
+        },
+        "verb": {
+          "text": "is",
+          "start": 6,
+          "end": 8
+        }
+      },
+      {
+        "character": {
+          "text": "researchers",
+          "start": 29,
+          "end": 40
+        },
+        "action": {
+          "text": "belief",
+          "start": 11,
+          "end": 40
+        }
+      },
+      {
+        "character": {
+          "text": "postings",
+          "start": 123,
+          "end": 131
+        },
+        "action": {
+          "text": "because",
+          "start": 105,
+          "end": 131
+        }
+      }
+    ],
+    "id": 8
+  },
+  {
+    "sent": "The design of the new roller coaster was more of a struggle for the engineers than had been their expectations.",
+    "score": [
+      1,
+      1,
+      0,
+      0,
+      1
+    ],
+    "labels": [
+      {
+        "subject": {
+          "text": "The design",
+          "start": 0,
+          "end": 10
+        },
+        "verb": {
+          "text": "was",
+          "start": 37,
+          "end": 40
+        }
+      },
+      {
+        "character": {
+          "text": "engineers",
+          "start": 68,
+          "end": 77
+        },
+        "action": {
+          "text": "struggle",
+          "start": 51,
+          "end": 77
+        }
+      },
+      {
+        "character": {
+          "text": "engineers",
+          "start": 68,
+          "end": 77
+        },
+        "action": {
+          "text": "expectations",
+          "start": 98,
+          "end": 77
+        }
+      }
+    ],
+    "id": 9
+  }
+]
