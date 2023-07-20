@@ -6,3 +6,4 @@ This folder contains:
 - `annotation.json`: result from hand-labeling the sentences (by myself), which contains:
    - spans that labels the `character`, `action`, `subject`, and `verb` of a sentence
    - multiple choices of the sentence characteristic regarding to its adherence to the five principles in the *Style* book.
+   - relations between the spans (which character that does which action?)
