@@ -1,6 +1,7 @@
 env*/
 experiments/
+deploy/
 *.tar.gz
 *.sh
-
+*.temp
 __pycache__/

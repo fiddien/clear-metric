@@ -10,9 +10,9 @@ parser.add_argument("-s", "--sentences", type=str,
                     help="List of sentences to score. Separate each sentences with <sep> token.")
 parser.add_argument("-cs", "--clear-scores-only", action='store_true',
                     help="Only outputs the (action, character) pair")
-parser.add_argument("-i", "--input-file", type=str,
+parser.add_argument("-i", "--input-file", type=str, default='',
                     help="A file that contains sentences to score. Separate different sentences by a new line.")
-parser.add_argument("-o", "--output-file", type=str,
+parser.add_argument("-o", "--output-file", type=str, default='',
                     help="Store the scores into a text file.")
 parser.add_argument("-b", "--batch-size", type=int, default=500,
                     help="Process the sentences in batch.")
@@ -78,20 +78,23 @@ def sents_iter(start, end, batch_size=8, input_file_path=None, sentences=None):
 def save_results(scores, sents, output_file=None, start_sent_num=0, batch_size=0):
     outputs = []
     
-    for i, out in enumerate(sents.to_json_format(scores)):
-        # outputs += sent
-        # outputs += f"  Scores     : {score}\n"
-        out['id'] = start_sent_num + i
-        outputs.append(out)
+    if output_file and output_file!='.temp':
         
-    if output_file:
+        for i, out in enumerate(sents.to_json_format(scores)):
+            # outputs += sent
+            # outputs += f"  Scores     : {score}\n"
+            out['id'] = start_sent_num + i
+            outputs.append(out)
+        
         # mode = 'w' if start_sent_num<=batch_size else 'a'
         mode = 'a'
         with open(output_file, mode, encoding='utf-8') as f:
             outputs = json.dumps(outputs)
             f.write(outputs)
+    
     else:
-        print(outputs)
+        for item in sents:
+            print(item)
 
 
 
