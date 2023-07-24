@@ -2,7 +2,6 @@ import spacy, benepar
 import amrlib
 from amrlib.graph_processing.annotator import add_lemmas, annotate_penman, load_spacy
 from amrlib.alignments.rbw_aligner import RBWAligner
-import penman
 
 spacy_model_name = 'en_core_web_md'
 nlp, stog = None, None
@@ -197,10 +196,13 @@ class GraphAligner:
         return [], []
     
 
-    def tree(self, var):
+    def tree(self, var, ori_var=None, depth=1):
+        if depth > 1 and ori_var==var:
+            return var, []
         edges = self.graphs[self.idx].edges(source=var)
-        return var, [(e.role, self.tree(e.target)) for e in edges]
+        return var, [(e.role, self.tree(e.target, ori_var, depth+1)) for e in edges]
     
+
     def get_ancestor(self, tree, d=1, role=None):
         var, branch = tree
         ind = [(var, role)]
@@ -228,7 +230,7 @@ class GraphAligner:
                     if v1 in aligned:
 
                         if self._get_concept(v2) in ['and', 'person']:
-                            ancestors = self.get_ancestor(self.tree(v2))
+                            ancestors = self.get_ancestor(self.tree(v2, v2))
                             vars = [v for v, r in ancestors \
                                      if r and (v in aligned) and (':ARG' not in r)]
                             for v in vars:
