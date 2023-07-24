@@ -143,7 +143,7 @@ class GraphAligner:
 
 
     def tree(self, var, ori_var=None, depth=1):
-        if depth > 1 and ori_var==var:
+        if (depth > 1 and ori_var==var) or depth > len(self.graphs[self.idx].variables()):
             return var, []
         edges = self.graphs[self.idx].edges(source=var)
         return var, [(e.role, self.tree(e.target, ori_var, depth+1)) for e in edges]
