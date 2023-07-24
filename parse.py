@@ -58,12 +58,12 @@ class GraphAligner:
         self.graphs = graphs
         
         if isinstance(sents, spacy.tokens.doc.Doc):
-            self.align_var = self.align_nodes(sents)
+            self.align_var = self.align_nodes(sents.sents)
         else:
             self.align_var = self.align_nodes()
 
 
-    def align_nodes(self, sents=[], add_tokens=False):
+    def align_nodes(self, spacy_sents=None):
         """
         Align the nodes of each AMR graphs to a token in the respective sentence string.
         Argument:
@@ -75,14 +75,14 @@ class GraphAligner:
         """
 
         alignments = []
-        if sents:
-            iter = zip(self.graphs, sents)
+        if spacy_sents:
+            iter = zip(self.graphs, spacy_sents)
         else:
             iter = zip(self.graphs, [[]]*len(self.graphs))
             
         for idx, (graph_str, sent) in enumerate(iter):
             
-            tokens = [t for t in sent] if add_tokens else None
+            tokens = [t for t in sent] if spacy_sents else None
             penman_graph = add_lemmas(graph_str, snt_key='snt')
             penman_graph = annotate_penman(penman_graph, 
                                            tokens=tokens)
@@ -91,11 +91,10 @@ class GraphAligner:
             sent = penman_graph.metadata['snt']
             
             nodes_alignment = {}
-            start_idx = 0
+            
             # Nodes that can be aligned to the strings/tokens
-            for i, (align, token) in enumerate(zip(aligned_graph.alignments,
-                                                   aligned_graph.tokens)):
-                end_idx = start_idx + len(token)
+            for i, (align, token) in \
+                enumerate(zip(aligned_graph.alignments, tokens)):
 
                 if align:
                     var = align.triple[0] if align.is_concept() else align.triple[1]
@@ -105,19 +104,16 @@ class GraphAligner:
                     if var not in nodes_alignment:
                         nodes_alignment[var] = [
                             Node(i, var, concept, role, token, 
-                                 start_idx, end_idx)
+                                 token.idx, token.idx + len(token.text))
                         ]
                     else:
                         nodes_alignment[var].append(
                             Node(i, var, concept, role, token,
-                                 start_idx, end_idx)
+                                 token.idx, token.idx + len(token.text))
                         )
-                
-                start_idx += sent[end_idx:end_idx+2].count(' ')
-                start_idx = end_idx + 1
 
             alignments.append(nodes_alignment)
-
+            
         return alignments
 
     
@@ -145,56 +141,6 @@ class GraphAligner:
             if v==var:
                 return concept
 
-
-    def _check_alignment(self, idx, alignment, role, v1, v2, vs=None):
-
-        if vs:
-            s_list, t_list = [], []
-
-            a, b = self._check_alignment(idx, alignment, role, v1, v2)
-            if not (a and b):
-                return [], []
-            
-            if v2 in role:
-                for v3 in vs:
-                    if v2!=v3 and v3 in role[v2] and ':op' in role[v2][v3]:
-                        if v2 in alignment and v3 in alignment:
-                            s_list.append(v2)
-                            t_list.append(v3)
-            return s_list, t_list
-
-        if role[v1][v2]==':ARG0':
-            path = [':ARG0']
-            
-            # Check if v1 and v2 are aligned
-            if v1 in alignment: 
-                
-                if v2 in alignment: 
-                    # Return both nodes' alignments
-                    return alignment[v1], alignment[v2]
-                else: 
-                    # v2 is not aligned, check its children
-                    if v2 in role:
-                        # Iterate through v2's children nodes
-                        for v2_child in role[v2]: 
-                            if v2_child in alignment:
-                                return alignment[v1], alignment[v2_child]
-        
-        elif role[v1][v2]==':ARG0-of':
-            path = [':ARG0-of']
-            
-            # Check if v1 and v2 are aligned
-            if v1 in alignment: 
-
-                if v2 in alignment: 
-                    # Return both nodes' alignments
-                    return alignment[v2], alignment[v1]
-                else: 
-                    # v2 is not aligned, check its children?
-                    pass
-        
-        return [], []
-    
 
     def tree(self, var, ori_var=None, depth=1):
         if depth > 1 and ori_var==var:
@@ -254,21 +200,24 @@ class GraphAligner:
 # === Syntatic parsing happens here to analyse get the verb and subject of the sentence ===
 class Sentence:
     def __init__(self, sentences, syntax_model=None, semantic_model=None):
+        
+        assert isinstance(sentences, str)
+
         if not syntax_model:
             syntax_model = load_models('syntax')
 
-        self.docs = self.parse_syntax(syntax_model, sentences)
+        self.doc = self.parse_syntax(syntax_model, sentences)
         self.structures = self.get_structures()
 
         if not semantic_model:
             semantic_model = load_models('semantic')
 
-        self.amrs = self.parse_semantic(semantic_model, sentences)
-        self.stories = list(self.amrs.get_actn_char())
+        self.amr = self.parse_semantic(semantic_model, [s.text for s in self.doc.sents])
+        self.stories = list(self.amr.get_actn_char())
 
 
     def __len__(self):
-        return len(self.docs)
+        return len(self.doc)
 
     
     def __iter__(self):
@@ -278,11 +227,11 @@ class Sentence:
 
     def __next__(self):
         i = self.i
-        if i == len(self.amrs.graphs):
+        if i == len(self.amr.graphs):
             raise StopIteration
         
         out = ''
-        out += f"Sentence     : {self.amrs.graphs[i].metadata['snt']}\n"
+        out += f"Sentence     : {self.amr.graphs[i].metadata['snt']}\n"
         out += f"  Structures :\n"
         if self.structures[i]:
             for structure in self.structures[i]:
@@ -308,28 +257,15 @@ class Sentence:
 
 
     def get_sentences(self):
-        return self.docs.sents
+        return self.doc.sents
 
 
-    def parse_syntax(self, syntax_model, sentences):        
-        if isinstance(sentences, list) and isinstance(sentences[0], str):
-            if len(sentences) > 1:
-                for i, sent in enumerate(sentences):
-                    sent = sent.strip()
-                    if sent[-1] not in '.?!':
-                        sentences[i] = sent + '.'
-            sentences_str = " ".join(sentences)
-            doc = syntax_model(sentences_str)
-            assert len(list(doc.sents)) == len(sentences)
-        else:
-            doc = syntax_model(sentences)
-        return doc        
+    def parse_syntax(self, syntax_model, sentences):
+        return syntax_model(sentences)
 
 
     def parse_semantic(self, semantic_model, sentences):
-        if hasattr(self, 'docs'):
-            return GraphAligner(semantic_model([s.text for s in self.docs.sents]), self.docs)
-        return GraphAligner(semantic_model([s.text for s in sentences]), sentences)
+        return GraphAligner(semantic_model(sentences), self.doc)
     
 
     def to_json_format(self, scores=None):
@@ -452,12 +388,12 @@ class Sentence:
         dependents = [
             'aux',
             'auxpass',
-            # 'advmod',
             'prt',
             'neg',
             'ccomp',
         ]
-        for sent in list(self.docs.sents):
+        for sent in self.doc.sents:
+            
             # Capture the case which theire is no verb/auxilary word
             if sent.root.pos_ not in ['VERB', 'AUX']:
                 yield []
@@ -473,6 +409,7 @@ class Sentence:
                     verbs.append(child)
 
             verbs_group = self._group_consecutive_tokens(verbs)
+            
             if verbs_group:
                 yield verbs_group
             else:
@@ -481,7 +418,7 @@ class Sentence:
 
     def get_subjects(self, Verbs):
         """ Get the noun phrase which directly depends on the verbs """
-        for sent, verbs in zip(self.docs.sents, Verbs):
+        for sent, verbs in zip(self.doc.sents, Verbs):
             subjects = []
 
             for verb in verbs:
