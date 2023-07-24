@@ -42,7 +42,7 @@ class Node:
         self.start = start
         self.end = end
         
-        self.text = text
+        self.text = text.text if isinstance(text, spacy.tokens.token.Token) else text
         self.var = var
         self.concept = concept
         self.role = role
