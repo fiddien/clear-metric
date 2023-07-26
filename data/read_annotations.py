@@ -3,6 +3,7 @@ import json
 import spacy
 import tqdm
 
+nlp = None
 
 CHOICES_DICT = {
     'Character-Subject Misalignment': 0,
@@ -64,52 +65,63 @@ def read_annotation(path_to_json_file):
         yield {'sent': sentence, 'score': score, 'labels': relations}
 
 
+
 def char_to_token(annotation):
-    nlp = spacy.load("en_core_web_md")
-    doc = nlp(annotation['sent'])
     
-    if 'labels' in annotation:
+    if 'labels' not in annotation:
+        return annotation
     
-        for i, label in enumerate(annotation['labels']):
+    if 'tokens' not in annotation:
+        global nlp, spacy_model_name
+        if not nlp:
+            nlp = spacy.load(spacy_model_name)
+        doc = nlp(annotation['sent'])
+        annotation['tokens'] = [t.text for t in doc]
+    
+    for i, label in enumerate(annotation['labels']):
 
-            for role in label:
-                found = False
-                text = label[role]['text']
-                start, end = label[role]['start'], label[role]['end']
+        for role in label:
+            found = False
+            text = label[role]['text']
+            start, end = label[role]['start'], label[role]['end']
 
-                matchs = re.finditer(text, doc.text)
-                    
-                for match in matchs:
-                    if match is None:
-                        raise Exception(f'No matching span found: "{text}" in ({doc.text})')
-                    
-                    span = doc.char_span(*match.span())
-
-                    if span is None:
-                        continue
-                    
-                    span = list(span)
-                    match_start = span[0].idx
-                    match_end = span[-1].idx + len(span[-1].text)
-                    
-                    if (start==match_start) and (end==match_end):
-                        annotation['labels'][i][role]['idx_start'] = span[0].i
-                        annotation['labels'][i][role]['idx_end'] = span[-1].i + 1
-                        found = True
-                        break
+            matchs = re.finditer(text, doc.text)
                 
-                if not found:
+            for match in matchs:
+                if match is None:
                     raise Exception(f'No matching span found: "{text}" in ({doc.text})')
+                
+                span = doc.char_span(*match.span())
 
+                if span is None:
+                    continue
+                
+                span = list(span)
+                match_start = span[0].idx
+                match_end = span[-1].idx + len(span[-1].text)
+                
+                if (start==match_start) and (end==match_end):
+                    annotation['labels'][i][role]['i_start'] = span[0].i
+                    annotation['labels'][i][role]['i_end'] = span[-1].i + 1
+                    found = True
+                    break
+            
+            if not found:
+                raise Exception(f'No matching span found: "{text}" in ({doc.text})')
     return annotation
 
 
 if __name__=='__main__':
 
+    spacy_model_name = 'en_core_web_md'
+
     annotation_path = 'data/Style-Examples/annotation.json'
     annotation = read_annotation(annotation_path)
 
     i = 0
-    for item in tqdm.tqdm(annotation):
+    for item in annotation:
         item = char_to_token(item)
-        # print(item)
+        print(item)
+        i += 1
+        if i>0:
+            break

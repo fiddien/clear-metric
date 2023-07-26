@@ -26,7 +26,8 @@ def load_models(mode=['syntax', 'semantic']):
     if 'semantic' in mode:
         global stog
         if not stog:
-            model = amrlib.load_stog_model()
+            # model = amrlib.load_stog_model()
+            model = amrlib.load_stog_model('../clear-metric-demo/static/model_parse_xfm_bart_base-v0_1_0')
             model = model.parse_sents
             stog = model
             return model
@@ -37,15 +38,16 @@ def load_models(mode=['syntax', 'semantic']):
 
 class Node:
     def __init__(self, i, var, concept=None, role=None, text='',
-                 start=None, end=None):
+                 start=None, end=None, spacy_token=None):
         self.i = i
         self.start = start
         self.end = end
         
-        self.text = text.text if isinstance(text, spacy.tokens.token.Token) else text
+        self.text = text
         self.var = var
         self.concept = concept
         self.role = role
+        self.token = spacy_token
 
     def __repr__(self):
         return self.text
@@ -76,11 +78,11 @@ class GraphAligner:
 
         alignments = []
         if spacy_sents:
-            iter = zip(self.graphs, spacy_sents)
+            iter_graph = zip(self.graphs, spacy_sents)
         else:
-            iter = zip(self.graphs, [[]]*len(self.graphs))
+            iter_graph = zip(self.graphs, [[]]*len(self.graphs))
             
-        for idx, (graph_str, sent) in enumerate(iter):
+        for idx, (graph_str, sent) in enumerate(iter_graph):
             
             tokens = [t for t in sent] if spacy_sents else None
             penman_graph = add_lemmas(graph_str, snt_key='snt')
@@ -100,17 +102,25 @@ class GraphAligner:
                     var = align.triple[0] if align.is_concept() else align.triple[1]
                     role = align.triple[1] if align.is_role() else None
                     concept = align.triple[2] if align.is_concept() else None
-
-                    if var not in nodes_alignment:
-                        nodes_alignment[var] = [
-                            Node(i, var, concept, role, token, 
-                                 token.idx, token.idx + len(token.text))
-                        ]
-                    else:
-                        nodes_alignment[var].append(
-                            Node(i, var, concept, role, token,
-                                 token.idx, token.idx + len(token.text))
+                    if spacy_sents:
+                        node = Node(
+                            i = token.i - token.sent[0].i,
+                            var = var, concept=concept, role=role, 
+                            text = token.text,
+                            start = token.idx - token.sent[0].idx, 
+                            end = token.idx + len(token.text) - token.sent[0].idx,
+                            spacy_token = token
                         )
+                    else:
+                        node = Node(
+                            i = i,
+                            var = var, concept=concept, role=role, 
+                            text = token
+                        )
+                    if var not in nodes_alignment:
+                        nodes_alignment[var] = [node]
+                    else:
+                        nodes_alignment[var].append(node)
 
             alignments.append(nodes_alignment)
             
@@ -201,7 +211,8 @@ class GraphAligner:
 class Sentence:
     def __init__(self, sentences, syntax_model=None, semantic_model=None):
         
-        assert isinstance(sentences, str)
+        if isinstance(sentences, list):
+            sentences = ' '.join(sentences)
 
         if not syntax_model:
             syntax_model = load_models('syntax')
@@ -236,9 +247,9 @@ class Sentence:
         if self.structures[i]:
             for structure in self.structures[i]:
                 if structure:
-                    out += "    S - V    : {} - {}\n".format(
-                        ' '.join([t.text for t in structure['subject']]),
-                        ' '.join([t.text for t in structure['verb']]),
+                    out += "    S | V    : {} | {}\n".format(
+                        self.doc[structure['subject'][0].i:structure['subject'][-1].i+1],
+                        self.doc[structure['verb'][0].i:structure['verb'][-1].i+1]
                     )
         else: 
             out += "    None\n"
@@ -246,9 +257,9 @@ class Sentence:
         if self.stories[i]:
             for story in self.stories[i]:
                 if story:
-                    out += "    C - A    : {} - {}\n".format(
-                        ' '.join([t.text for t in story['character']]),
-                        ' '.join([t.text for t in story['action']]),
+                    out += "    C | A    : {} | {}\n".format(
+                        self.doc[story['character'][0].i:story['character'][-1].i+1],
+                        self.doc[story['action'][0].i:story['action'][-1].i+1]
                     )
         else: 
             out += "    None\n"
@@ -277,34 +288,31 @@ class Sentence:
             result = []
             for item in labels:
                 if 'character' in item:
-                    char = ' '.join([t.text for t in item['character']])
-                    char_start = item['character'][0].start
-                    char_end = item['character'][-1].end
-                    
-                    actn = ' '.join([t.text for t in item['action']])
-                    actn_start = item['action'][0].start
-                    actn_end = item['character'][-1].end
-
+                    first_word = item['character'][0].token
                     result.append({
                         'character': {
-                            'text': char,
-                            'start': char_start,
-                            'end': char_end,
+                            'text': self.doc[item['character'][0].token.i:item['character'][-1].token.i+1].text,
+                            'start': item['character'][0].start,
+                            'end': item['character'][-1].end,
+                            'i_start': item['character'][0].i,
+                            'i_end': item['character'][-1].i,
                         },
                         'action': {
-                            'text': actn,
-                            'start': actn_start,
-                            'end': actn_end,
+                            'text': self.doc[item['action'][0].token.i:item['action'][-1].token.i+1].text,
+                            'start': item['action'][0].start,
+                            'end': item['action'][-1].end,
+                            'i_start': item['action'][0].i,
+                            'i_end': item['action'][-1].i,
                         }
                     })
                 
                 elif 'subject' in item:
                     first_word = item['subject'][0].sent[0]
-                    subj = ' '.join([t.text for t in item['subject']])
+                    subj = self.doc[item['subject'][0].i:item['subject'][-1].i+1].text
                     subj_start = item['subject'][0].idx - first_word.idx
                     subj_end = subj_start + len(subj)
                     
-                    verb = ' '.join([t.text for t in item['verb']])
+                    verb = self.doc[item['verb'][0].i:item['verb'][-1].i+1].text
                     verb_start = item['verb'][0].idx - first_word.idx
                     verb_end = verb_start + len(verb)
 
@@ -313,14 +321,18 @@ class Sentence:
                             'text': subj,
                             'start': subj_start,
                             'end': subj_end,
+                            'i_start': item['subject'][0].i - first_word.i,
+                            'i_end': item['subject'][-1].i - first_word.i,
                         },
                         'verb': {
                             'text': verb,
                             'start': verb_start,
                             'end': verb_end,
+                            'i_start': item['verb'][0].i - first_word.i,
+                            'i_end': item['verb'][-1].i - first_word.i,
                         }
                     })
-            yield {'sent': sent.text, 'score': score, 'labels': result}
+            yield {'sent': sent.text, 'tokens':[t.text for t in sent], 'score': score, 'labels': result}
         
 
     def get_labels(self):

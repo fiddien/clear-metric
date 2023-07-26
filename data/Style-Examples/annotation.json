@@ -113,21 +113,6 @@
           },
           {
             "value": {
-              "start": 0,
-              "end": 9,
-              "text": "A company",
-              "labels": [
-                "Subject"
-              ]
-            },
-            "id": "iyJwiGpeTv",
-            "from_name": "label",
-            "to_name": "text",
-            "type": "labels",
-            "origin": "manual"
-          },
-          {
-            "value": {
               "start": 142,
               "end": 144,
               "text": "is",
@@ -152,6 +137,21 @@
             "from_name": "Alignment",
             "to_name": "text",
             "type": "choices",
+            "origin": "manual"
+          },
+          {
+            "value": {
+              "start": 0,
+              "end": 141,
+              "text": "A company that focuses on hiring the best personnel and then trains them not just for the work they are hired to do but for higher-level jobs",
+              "labels": [
+                "Subject"
+              ]
+            },
+            "id": "P8PIUjUvEA",
+            "from_name": "label",
+            "to_name": "text",
+            "type": "labels",
             "origin": "manual"
           },
           {
@@ -185,7 +185,7 @@
             "direction": "right"
           },
           {
-            "from_id": "iyJwiGpeTv",
+            "from_id": "P8PIUjUvEA",
             "to_id": "gPEV8VyMxm",
             "type": "relation",
             "direction": "right"
@@ -194,9 +194,9 @@
         "was_cancelled": false,
         "ground_truth": false,
         "created_at": "2023-07-17T23:14:15.437965Z",
-        "updated_at": "2023-07-17T23:24:48.570263Z",
+        "updated_at": "2023-07-26T19:01:15.414227Z",
         "draft_created_at": "2023-07-17T23:13:49.310102Z",
-        "lead_time": 36.005,
+        "lead_time": 58.072,
         "prediction": {},
         "result_count": 0,
         "unique_id": "de02a6d3-45c8-4b7a-b30b-3f688683866c",
@@ -217,7 +217,7 @@
     },
     "meta": {},
     "created_at": "2023-07-17T23:13:37.406808Z",
-    "updated_at": "2023-07-17T23:24:48.666292Z",
+    "updated_at": "2023-07-26T19:01:15.476921Z",
     "inner_id": 1,
     "total_annotations": 1,
     "cancelled_annotations": 0,
@@ -7538,21 +7538,6 @@
         "result": [
           {
             "value": {
-              "start": 0,
-              "end": 79,
-              "text": "A decision about forcibly administering medication in an emergency room setting",
-              "labels": [
-                "Subject"
-              ]
-            },
-            "id": "mfDQzcE2Gc",
-            "from_name": "label",
-            "to_name": "text",
-            "type": "labels",
-            "origin": "manual"
-          },
-          {
-            "value": {
               "start": 152,
               "end": 154,
               "text": "is",
@@ -7569,8 +7554,7 @@
           {
             "value": {
               "choices": [
-                "Long Abstract Subject",
-                "Subject-Verb Interruption"
+                "Long Abstract Subject"
               ]
             },
             "id": "5GOfCF5zLi",
@@ -7655,14 +7639,29 @@
             "origin": "manual"
           },
           {
-            "from_id": "mfDQzcE2Gc",
-            "to_id": "MncWaYOBCJ",
-            "type": "relation",
-            "direction": "right"
+            "value": {
+              "start": 0,
+              "end": 151,
+              "text": "A decision about forcibly administering medication in an emergency room setting despite the inability of an irrational patient to provide legal consent",
+              "labels": [
+                "Subject"
+              ]
+            },
+            "id": "ccQIKaumy_",
+            "from_name": "label",
+            "to_name": "text",
+            "type": "labels",
+            "origin": "manual"
           },
           {
             "from_id": "yki9kCL-RL",
             "to_id": "KO8tJN8Z5h",
+            "type": "relation",
+            "direction": "right"
+          },
+          {
+            "from_id": "ccQIKaumy_",
+            "to_id": "MncWaYOBCJ",
             "type": "relation",
             "direction": "right"
           }
@@ -7670,9 +7669,9 @@
         "was_cancelled": false,
         "ground_truth": false,
         "created_at": "2023-07-18T00:14:56.437059Z",
-        "updated_at": "2023-07-18T00:15:49.963296Z",
+        "updated_at": "2023-07-25T14:44:45.438124Z",
         "draft_created_at": "2023-07-18T00:14:13.505120Z",
-        "lead_time": 70.019,
+        "lead_time": 149.183,
         "prediction": {},
         "result_count": 0,
         "unique_id": "2bd6ec33-349c-4628-b1e0-8c9803000e83",
@@ -7693,7 +7692,7 @@
     },
     "meta": {},
     "created_at": "2023-07-17T23:13:37.408808Z",
-    "updated_at": "2023-07-18T00:15:50.069921Z",
+    "updated_at": "2023-07-25T14:44:45.565226Z",
     "inner_id": 45,
     "total_annotations": 1,
     "cancelled_annotations": 0,
@@ -10771,10 +10770,10 @@
           {
             "value": {
               "choices": [
-                "Long Introductory Phrases and Clauses"
+                "Subject-Verb Interruption"
               ]
             },
-            "id": "wXtNsmYwfW",
+            "id": "BC7D5AcFz7",
             "from_name": "Alignment",
             "to_name": "text",
             "type": "choices",
@@ -10802,9 +10801,9 @@
         "was_cancelled": false,
         "ground_truth": false,
         "created_at": "2023-07-18T00:34:38.907876Z",
-        "updated_at": "2023-07-18T00:34:38.907876Z",
+        "updated_at": "2023-07-25T14:48:04.626112Z",
         "draft_created_at": "2023-07-18T00:34:06.831015Z",
-        "lead_time": 43.96,
+        "lead_time": 54.481,
         "prediction": {},
         "result_count": 0,
         "unique_id": "3619662f-35f3-4701-97e9-7a811e94b27f",
@@ -10825,7 +10824,7 @@
     },
     "meta": {},
     "created_at": "2023-07-17T23:13:37.418937Z",
-    "updated_at": "2023-07-18T00:34:39.005252Z",
+    "updated_at": "2023-07-25T14:48:04.721073Z",
     "inner_id": 65,
     "total_annotations": 1,
     "cancelled_annotations": 0,
@@ -22599,9 +22598,9 @@
         "was_cancelled": false,
         "ground_truth": false,
         "created_at": "2023-07-18T10:39:18.998491Z",
-        "updated_at": "2023-07-18T10:40:43.022085Z",
+        "updated_at": "2023-07-20T16:11:53.826693Z",
         "draft_created_at": "2023-07-18T10:39:07.826674Z",
-        "lead_time": 66.599,
+        "lead_time": 75.452,
         "prediction": {},
         "result_count": 0,
         "unique_id": "ad6d2700-9ed6-4040-98bc-89fe129810c7",
@@ -22622,7 +22621,7 @@
     },
     "meta": {},
     "created_at": "2023-07-17T23:13:37.427791Z",
-    "updated_at": "2023-07-18T10:40:43.078023Z",
+    "updated_at": "2023-07-20T16:11:53.948799Z",
     "inner_id": 139,
     "total_annotations": 1,
     "cancelled_annotations": 0,
@@ -22717,9 +22716,9 @@
         "was_cancelled": false,
         "ground_truth": false,
         "created_at": "2023-07-18T10:39:58.404558Z",
-        "updated_at": "2023-07-18T10:39:58.404558Z",
+        "updated_at": "2023-07-20T16:11:43.447431Z",
         "draft_created_at": "2023-07-18T10:39:28.399280Z",
-        "lead_time": 39.171,
+        "lead_time": 52.57,
         "prediction": {},
         "result_count": 0,
         "unique_id": "440be982-13d0-4425-b992-02ab611827de",
@@ -22740,7 +22739,7 @@
     },
     "meta": {},
     "created_at": "2023-07-17T23:13:37.427791Z",
-    "updated_at": "2023-07-18T10:39:58.452260Z",
+    "updated_at": "2023-07-20T16:11:43.564588Z",
     "inner_id": 140,
     "total_annotations": 1,
     "cancelled_annotations": 0,
