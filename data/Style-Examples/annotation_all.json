@@ -662,14 +662,14 @@
           },
           {
             "value": {
-              "start": 9,
-              "end": 16,
-              "text": "critics",
+              "start": 50,
+              "end": 60,
+              "text": "loyal fans",
               "labels": [
                 "Subject"
               ]
             },
-            "id": "V8PSH0BKr0",
+            "id": "_TZbRetYrI",
             "from_name": "label",
             "to_name": "text",
             "type": "labels",
@@ -677,14 +677,14 @@
           },
           {
             "value": {
-              "start": 17,
-              "end": 23,
-              "text": "panned",
+              "start": 67,
+              "end": 72,
+              "text": "loved",
               "labels": [
                 "Verb"
               ]
             },
-            "id": "42-ESZzf4A",
+            "id": "TGeqEPqZXp",
             "from_name": "label",
             "to_name": "text",
             "type": "labels",
@@ -703,8 +703,8 @@
             "direction": "right"
           },
           {
-            "from_id": "V8PSH0BKr0",
-            "to_id": "42-ESZzf4A",
+            "from_id": "_TZbRetYrI",
+            "to_id": "TGeqEPqZXp",
             "type": "relation",
             "direction": "right"
           }
@@ -712,9 +712,9 @@
         "was_cancelled": false,
         "ground_truth": false,
         "created_at": "2023-07-17T23:17:22.027212Z",
-        "updated_at": "2023-07-17T23:17:22.027212Z",
+        "updated_at": "2023-07-27T20:02:55.586796Z",
         "draft_created_at": "2023-07-17T23:16:52.205663Z",
-        "lead_time": 41.269,
+        "lead_time": 97.08,
         "prediction": {},
         "result_count": 0,
         "unique_id": "2ab6ccdb-e262-43a6-a7da-f45154445d79",
@@ -735,7 +735,7 @@
     },
     "meta": {},
     "created_at": "2023-07-17T23:13:37.406808Z",
-    "updated_at": "2023-07-17T23:17:22.120160Z",
+    "updated_at": "2023-07-27T20:02:55.656955Z",
     "inner_id": 4,
     "total_annotations": 1,
     "cancelled_annotations": 0,
