@@ -8,8 +8,8 @@ parser = argparse.ArgumentParser(description="",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("-m", "--mode", type=str, default=None,
                     help="Mode of evaluation: clear-metric, span-label. If none given, then it's both")
-parser.add_argument("-sm", "--span-mode", type=str, default='subset',
-                    help="Strictness of the span-labeling evaluation: 'subset' (default) or 'exact'.")
+parser.add_argument("-sm", "--span-mode", type=str, default='partial',
+                    help="Strictness of the span-labeling evaluation: 'partial' (default) or 'exact'.")
 
 nlp = English()
 tokenizer = nlp.tokenizer
@@ -180,18 +180,18 @@ def evaluate_clear_metrics(true_labels, predicted_labels):
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
         f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
-        class_metrics[f"Class_{category}"] = {
-            "Accuracy": accuracy,
+        class_metrics[f"rule {category+1}"] = {
+            'TP': tp, 'FP': fp, 'FN': fn, 'TN': tn,
             "Precision": precision,
             "Recall": recall,
-            "F1_score": f1_score,
-            'TP': tp, 'TN': tn, 'FP': fp, 'FN': fn,
+            "F1-score": f1_score,
+            "Accuracy": accuracy,
         }
 
     return class_metrics
 
 
-def evaluate_spans(predicted_labels, ground_truth_labels, mode='subset'):
+def evaluate_spans(predicted_labels, ground_truth_labels, mode='partial'):
     """
     Evluate the spans. Perform alignment for spans using token number information.
 
@@ -220,46 +220,44 @@ def evaluate_spans(predicted_labels, ground_truth_labels, mode='subset'):
         for role in item:
             ground_truth_spans.append((role, get_token_positions(item[role])))
 
-    support = {role: sum([1 if r==role else 0 for r, _ in predicted_spans]) for role in roles}
-
     # Calculate true positives, false positives, and false negatives
-    true_positives = {role:0 for role in roles}
-    false_positives = {role:0 for role in roles}
-    false_negatives = {role:0 for role in roles}
+    tp = {role:0 for role in roles}
+    fp = {role:0 for role in roles}
+    fn = {role:0 for role in roles}
     
-    if mode=='subset':
+    if mode=='partial':
         for pred_role, pred_span in predicted_spans:
             if any((pred_span.issubset(gt_span) and pred_role==gt_role) \
                 for gt_role, gt_span in ground_truth_spans):
-                true_positives[pred_role] += 1
+                tp[pred_role] += 1
             else:
-                false_positives[pred_role] += 1
+                fp[pred_role] += 1
 
         for gt_role, gt_span in ground_truth_spans:
             if not any((gt_span.issubset(pred_span) and gt_role==pred_role) \
                     for pred_role, pred_span in predicted_spans):
-                false_negatives[gt_role] += 1
+                fn[gt_role] += 1
 
     elif mode=='exact':
         for pred_role, pred_span in predicted_spans:
             if any((pred_span==gt_span and pred_role==gt_role) \
                 for gt_role, gt_span in ground_truth_spans):
-                true_positives[pred_role] += 1
+                tp[pred_role] += 1
             else:
-                false_positives[pred_role] += 1
+                fp[pred_role] += 1
 
         for gt_role, gt_span in ground_truth_spans:
             if not any((gt_span==pred_span and gt_role==pred_role) \
                     for pred_role, pred_span in predicted_spans):
-                false_negatives[gt_role] += 1
+                fn[gt_role] += 1
     
     else:
         raise ValueError("Wrong 'mode' argument. It should be either 'exact' or 'subset' (default).")
     
     precision, recall, f1_score = {}, {}, {}
-    for role, tp in true_positives.items():
-        precision[role] = tp / (tp+false_positives[role]) if tp+false_positives[role]!=0 else 0
-        recall[role] = tp / (tp+false_negatives[role]) if tp+false_negatives[role]!=0 else 0
+    for role, tp_ in tp.items():
+        precision[role] = tp_ / (tp_+fp[role]) if tp_+fp[role]!=0 else 0
+        recall[role] = tp_ / (tp_+fn[role]) if tp_+fn[role]!=0 else 0
         f1_score[role] = 2*precision[role]*recall[role]/(precision[role]+recall[role]) \
                          if precision[role]+recall[role]!=0 else 0
         
@@ -269,19 +267,18 @@ def evaluate_spans(predicted_labels, ground_truth_labels, mode='subset'):
     # precision['micro_avg'] = sum(true_positives.values())/len(predicted_spans)
     # recall['micro_avg'] = sum(true_positives.values())/len(ground_truth_spans)
 
-    true_positives['total'] = sum(true_positives.values())
-    false_positives['total'] = sum(false_positives.values())
-    false_negatives['total'] = sum(false_negatives.values())
-    
+    tp['total'] = sum(tp.values())
+    fp['total'] = sum(fp.values())
+    fn['total'] = sum(fn.values())
+    support = {role: tp[role]+fn[role] for role in roles}
+    support['total'] = sum(support.values())
 
     return {
-        'TP': true_positives, 
-        'FP': false_positives, 
-        'FN': false_negatives,
-        'precision': precision,
-        'recall': recall,
-        'f1_score': f1_score,
-        'support': support,
+        'TP': tp, 'FP': fp, 'FN': fn,
+        'Support': support,
+        'Precision': precision,
+        'Recall': recall,
+        'F1-score': f1_score,
     }
 
 if __name__=='__main__':
@@ -316,40 +313,52 @@ if __name__=='__main__':
         scores = evaluate_clear_metrics(true_scores, pred_scores)
         n = len(scores)
         classes = list(choices_dict.keys())
-        print('=== ClearMetric Evaluation ===')
+        print('=== ClearMetric Evaluation: Predicting Rules Adherence of a Sentence ===')
+        rows = {c: f"{c: >10}" for c in scores}
+        header = " "*10
+        for metric in scores['rule 1']: header += f'{metric: >10}'
         for i, cls in enumerate(scores):
-            print(f'{cls}: {classes[i]}')
             for metric in scores[cls]:
                 if len(metric)==2:
-                    print(f'  {metric}: {scores[cls][metric]}')
+                    rows[cls] += f'{scores[cls][metric]: >10}'
                 else:
-                    print(f'  {metric}: {scores[cls][metric]*100:.1f}%')
+                    rows[cls] += f'{round(scores[cls][metric]*100, 2): > 10}'
+
+        
+        print(header)
+        for c in rows: print(rows[c])
 
     if args.mode is None or args.mode=='span_label':
         n = len(span_scores)
         metrics = list(span_scores[0].keys())
         roles = list(span_scores[0][metrics[0]].keys())[:4]
-        print('=== Span Labels Evaluation ===')
+        print(f'=== Span Labelling Evaluation ({args.span_mode} match) ===')
+        header = " "*10
+        rows = {role: f"{role: >10}" for role in roles}
+        for metric in metrics: header += f'{metric: >10}'
         for role in roles:
-            print(f'[{role.upper()}]')
+            # print(f'[{role.upper()}]')
             for metric in metrics:
                 if len(metric)==2:
                     s = sum([score[metric][role] for score in span_scores])
-                    print(f'  {metric}: {s}')
-                elif 'support' in metric:
+                    rows[role] += f'{s: >10}'
+                elif 'Support' in metric:
                     s = sum([score[metric][role] for score in span_scores])
-                    print(f'  {metric}: {s}')
+                    rows[role] += f'{s: >10}'
                 else:
                     s = sum([score[metric][role] for score in span_scores])/n
-                    print(f'  {metric}: {s*100:.1f}%')
+                    rows[role] += f'{round(s*100, 2): >10}'
 
-        print('TOTAL')
-        for metric in ['TP', 'FP', 'FN']:
+        rows['total'] = f'{"TOTAL": >10}'
+        for metric in ['TP', 'FP', 'FN', 'Support']:
             s = sum([score[metric]['total'] for score in span_scores])
-            print(f'  {metric}: {s}')
+            rows['total'] += f'{s: >10}'
 
+        rows['macro_avg'] = f'{"MACRO AVG": >10}' + ' '*40
         for agg in ['macro_avg']:
-            print(agg.upper())
-            for metric in ['precision', 'recall', 'f1_score']:
+            for metric in ['Precision', 'Recall', 'F1-score']:
                 s = sum([score[metric][agg] for score in span_scores])/n
-                print(f'  {metric}: {s*100:.1f}%')
+                rows['macro_avg'] += f'{round(s*100, 2): >10}'
+
+        print(header)
+        for c in rows: print(rows[c])
