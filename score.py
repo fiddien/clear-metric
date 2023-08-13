@@ -37,7 +37,7 @@ class ClearMetric:
 
     def score_long_intro_phrases_clauses(self, structure):
         if structure:
-            is_short_intro = False
+            is_long_intro = False
             for s in structure:
                 if len(structure) > 1 and 'said' in [t.text for t in s['verb']]:
                     s = structure[1]
@@ -47,10 +47,10 @@ class ClearMetric:
                 # Count the number of punctiations
                 num_puncts = len([t for t in word.sent[:start] \
                                 if t.pos_=='PUNCT'])
-                is_short_intro = (start - num_puncts) < 9
+                is_long_intro = (start - num_puncts) > 8
                 # Return 1 as long as there's a subject
                 # that appears early
-            return int(is_short_intro)
+            return int(is_long_intro)
         return 0
 
 

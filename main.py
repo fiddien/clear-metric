@@ -93,8 +93,9 @@ def save_results(scores, sents, output_file=None, start_sent_num=0, batch_size=0
             f.write(outputs)
     
     else:
-        for item in sents:
+        for score, item in zip(scores, sents):
             print(item)
+            print('Score        :', score)
 
 
 

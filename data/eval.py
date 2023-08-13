@@ -6,10 +6,13 @@ import argparse
 
 parser = argparse.ArgumentParser(description="",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("annotation_file", type=str, help="")
+parser.add_argument("prediction_file", type=str, help="")
 parser.add_argument("-m", "--mode", type=str, default=None,
                     help="Mode of evaluation: clear-metric, span-label. If none given, then it's both")
-parser.add_argument("-sm", "--span-mode", type=str, default='partial',
-                    help="Strictness of the span-labeling evaluation: 'partial' (default) or 'exact'.")
+parser.add_argument("-sm", "--span-mode", type=str, default='exact',
+                    help="Strictness of the span-labeling evaluation: 'partial' or 'exact' (default).")
+parser.add_argument("--max", type=int, help="")
 
 nlp = English()
 tokenizer = nlp.tokenizer
@@ -97,20 +100,19 @@ def char_to_token(annotation, tokens=None):
     if 'tokens' not in annotation:
         doc = tokenizer(annotation['sent'])
         annotation['tokens'] = [t.text for t in doc]
-        if tokens:
-            assert tokens == annotation['tokens']
+        # if tokens:
+        #     assert tokens == annotation['tokens']
     
     for i, label in enumerate(annotation['labels']):
 
         for role in label:
             found = False
-            text = label[role]['text']
+            text = label[role]['text'] #.replace('&', '\&')
             start, end = label[role]['start'], label[role]['end']
-            matchs = re.finditer(text, doc.text)
-                
+            matchs = re.finditer(re.escape(text), doc.text)
             for match in matchs:
                 if match is None:
-                    raise Exception(f'No matching span found: "{text}" in ({doc.text})')
+                    raise Exception(f'No matching span found: "{text}" in "{doc.text}"')
                 
                 span = doc.char_span(*match.span())
                 if span is None:
@@ -124,7 +126,7 @@ def char_to_token(annotation, tokens=None):
                     found = True
                     break
             if not found:
-                raise Exception(f'No matching span found: "{text}" in ({doc.text})')
+                raise Exception(f'No matching span found: "{text}" in "{doc.text}"')
             
     return annotation
 
@@ -178,7 +180,7 @@ def evaluate_clear_metrics(true_labels, predicted_labels):
         accuracy = (tp + tn) / (tp + tn + fp + fn)
         precision = tp / (tp + fp) if (tp or fp) else None
         recall = tp / (tp + fn) if (tp or fn) else None
-        if precision is not None and recall is not None:
+        if precision is not None and recall is not None and precision+recall!=0:
             f1_score = 2 * (precision * recall) / (precision + recall)
         else:
             f1_score = None
@@ -276,27 +278,6 @@ def evaluate_spans(predicted_labels, ground_truth_labels, mode='partial'):
             f1_score[role] = 2*precision[role]*recall[role]/(precision[role]+recall[role])
         else:
             f1_score[role] = None
-        
-    # valid_precision = [p for p in precision.values() if p is not None]
-    # precision['macro_avg'] = sum(valid_precision)/len(valid_precision) if valid_precision else None
-
-    # valid_recall = [r for r in recall.values() if r is not None]
-    # recall['macro_avg'] = sum(valid_recall)/len(valid_recall) if valid_recall else None
-    
-    # valid_f1 = [f for f in f1_score.values() if f is not None]
-    # f1_score['macro_avg'] = sum(valid_f1)/len(valid_f1) if valid_f1 else None
-
-    # precision['micro_avg'] = 0
-    # recall['micro_avg'] = 0
-    # f1_score['micro_avg'] = 0
-    
-    # for role in roles:
-    #     n = support[role]
-    #     if n > 0:
-    #         precision['micro_avg'] += precision[role]/n if precision[role] is not None else 0
-    #         recall['micro_avg'] += recall[role]/n if recall[role] is not None else 0
-    #         f1_score['micro_avg'] += f1_score[role]/n if f1_score[role] is not None else 0
-
 
     return {
         'TP': tp, 'FP': fp, 'FN': fn,
@@ -344,17 +325,9 @@ def micro_average(total_tp, total_fp, total_fn, total_tn=0):
     return micro_precision, micro_recall, micro_f1
 
 
-if __name__=='__main__':
-
-    args = parser.parse_args()
-
-    annotation_path = 'data/Style-Examples/annotation-src.json'
-    result_path = 'evaluation/Style-Examples/prediction-src.json'
-    print('Ground truth file data path :', annotation_path)
-    print('Prediction file data path   :', result_path)
-    
-    annotations = read_annotation(annotation_path)
-    predictions = read_prediction(result_path)
+def process():
+    annotations = read_annotation(args.annotation_file)
+    predictions = read_prediction(args.prediction_file)
     i = 0
     true_scores = []
     pred_scores = []
@@ -371,8 +344,8 @@ if __name__=='__main__':
         if args.mode is None or args.mode=='span-label':
             span_scores.append(evaluate_spans(pred['labels'], anno['labels'], args.span_mode))
 
-        # i += 1
-        # if i>100: break
+        i += 1
+        if i == args.max: break
     print(f'n =', len(pred_scores))
 
     confusion_metrics = ['TP', 'FP', 'FN', 'TN']
@@ -393,10 +366,6 @@ if __name__=='__main__':
         for metric in confusion_metrics+metrics: 
             header += f'{metric: >10}'
 
-        # macro_avg = {metric: 0 for metric in metrics}
-        # n_macro_avg = {metric: 0 for metric in metrics}
-        # micro_avg = {metric: 0 for metric in metrics}
-        # n_micro_avg = {metric: 0 for metric in metrics}
         pr, rc, f1, ac = [], [], [], []
         tp_total, fp_total, fn_total, tn_total = 0, 0, 0, 0
         
@@ -439,20 +408,6 @@ if __name__=='__main__':
             ac.append(accuracy)
             rows[cls] += f'{round(accuracy*100, 1): >10}'
             
-
-
-            # for metric in scores[cls]:
-            #     if len(metric)==2:
-            #         rows[cls] += f'{scores[cls][metric]: >10}'
-            #         total[metric] += scores[cls][metric]
-            #     else:
-            #         if scores[cls][metric] is not None:
-            #             rows[cls] += f'{round(scores[cls][metric]*100, 1): > 10}'
-            #             macro_avg[metric] += scores[cls][metric]*100
-            #             n_macro_avg[metric] += 1                        
-            #         else:
-            #             rows[cls] += f'{"NaN": >10}'
-
         # Calculate totals
         totals = [tp_total, fp_total, fn_total, tn_total]
         for tot in totals: 
@@ -537,6 +492,16 @@ if __name__=='__main__':
         for mic_avg in micro_average(tp_total, fp_total, fn_total):
             rows['micro_avg'] += f'{round(mic_avg*100, 1): >10}'
             
-
         print(header)
         for c in rows: print(rows[c])
+
+
+
+if __name__=='__main__':
+
+    args = parser.parse_args()
+
+    print('Ground truth file data path :', args.annotation_file)
+    print('Prediction file data path   :', args.prediction_file)
+    
+    process()
