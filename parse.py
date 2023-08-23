@@ -443,7 +443,7 @@ class Sentence:
 
 
     @staticmethod
-    def _get_noun(verb):
+    def _get_noun(parent):
         dependents = [
             'nsubj',     # active sentence
             'nsubjpass', # passive sentence
@@ -451,7 +451,7 @@ class Sentence:
             'csubj',     # clausal subject
         ]
         subject = []
-        for token in verb.children:
+        for token in parent.children:
             if token.dep_ in dependents:
                 for child in token.subtree:
                     if child.text in [',', '--', '—', '–']:

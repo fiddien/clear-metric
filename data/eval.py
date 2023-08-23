@@ -3,6 +3,8 @@ import re
 import spacy
 from spacy.lang.en import English
 import argparse
+from itertools import chain
+import pickle
 
 parser = argparse.ArgumentParser(description="",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -59,28 +61,28 @@ def read_annotation(path_to_json_file):
                     'text': a['value']['text'],
                     'start': a['value']['start'],
                     'end': a['value']['end'],
-                    'labels': a['value']['labels'],
+                    'role': a['value']['labels'][0],
                 }
             
             elif a['type']=='choices':
                 score = choices_to_clearmetric(a['value']['choices'])
             
-            elif a['type']=='relation':
-                src, tgt = a['from_id'], a['to_id']
-                if 'Character' in labels[src]['labels'] and 'Action' in labels[tgt]['labels']:
-                    relations.append(
-                        {'character': labels[src].copy(), 'action': labels[tgt].copy()}
-                    )
-                    relations[-1]['character'].pop('labels')
-                    relations[-1]['action'].pop('labels')
-                if 'Subject' in labels[src]['labels'] and 'Verb' in labels[tgt]['labels']:
-                    relations.append(
-                        {'subject': labels[src].copy(), 'verb': labels[tgt].copy()}
-                    )
-                    relations[-1]['subject'].pop('labels')
-                    relations[-1]['verb'].pop('labels')
-        relations = sorted(relations, key=sort_by_start)
-        yield {'sent': sentence, 'score': score, 'labels': relations}
+        #     elif a['type']=='relation':
+        #         src, tgt = a['from_id'], a['to_id']
+        #         if 'Character' in labels[src]['labels'] and 'Action' in labels[tgt]['labels']:
+        #             relations.append(
+        #                 {'character': labels[src].copy(), 'action': labels[tgt].copy()}
+        #             )
+        #             relations[-1]['character'].pop('labels')
+        #             relations[-1]['action'].pop('labels')
+        #         if 'Subject' in labels[src]['labels'] and 'Verb' in labels[tgt]['labels']:
+        #             relations.append(
+        #                 {'subject': labels[src].copy(), 'verb': labels[tgt].copy()}
+        #             )
+        #             relations[-1]['subject'].pop('labels')
+        #             relations[-1]['verb'].pop('labels')
+        # relations = sorted(relations, key=sort_by_start)
+        yield {'sent': sentence, 'score': score, 'labels': list(labels.values())}
 
 
 def read_prediction(path_to_json_file):
@@ -88,7 +90,15 @@ def read_prediction(path_to_json_file):
     items = json.load(open(path_to_json_file, encoding='utf-8'))
 
     for item in items:
-        item['labels'] = sorted(item['labels'], key=sort_by_start)
+        # item['labels'] = sorted(item['labels'], key=sort_by_start)
+        
+        labels = []
+        for x in item['labels']:
+            for role in x:
+                lab = x[role]
+                lab['role'] = role
+                labels.append(lab)
+        item['labels'] = labels
         yield item
 
 
@@ -105,10 +115,10 @@ def char_to_token(annotation, tokens=None):
     
     for i, label in enumerate(annotation['labels']):
 
-        for role in label:
+        # for role in label:
             found = False
-            text = label[role]['text'] #.replace('&', '\&')
-            start, end = label[role]['start'], label[role]['end']
+            text = label['text'] #.replace('&', '\&')
+            start, end = label['start'], label['end']
             matchs = re.finditer(re.escape(text), doc.text)
             for match in matchs:
                 if match is None:
@@ -121,8 +131,8 @@ def char_to_token(annotation, tokens=None):
                 match_start = span[0].idx
                 match_end = span[-1].idx + len(span[-1].text)
                 if (start==match_start) and (end==match_end):
-                    annotation['labels'][i][role]['i_start'] = span[0].i
-                    annotation['labels'][i][role]['i_end'] = span[-1].i
+                    annotation['labels'][i]['i_start'] = span[0].i
+                    annotation['labels'][i]['i_end'] = span[-1].i
                     found = True
                     break
             if not found:
@@ -131,27 +141,27 @@ def char_to_token(annotation, tokens=None):
     return annotation
 
 
-def to_bio_labels(annotation):
+# def to_bio_labels(annotation):
     
-    if 'labels' not in annotation:
-        return annotation
+#     if 'labels' not in annotation:
+#         return annotation
     
-    if 'tokens' not in annotation:
-        annotation['tokens'] = [t.text for t in tokenizer(annotation['sent'])]
+#     if 'tokens' not in annotation:
+#         annotation['tokens'] = [t.text for t in tokenizer(annotation['sent'])]
 
-    bio_labels = [] # one list for each pair of subject-verb and character-action
-    for i, label in enumerate(annotation['labels']):
-        bio = ['O' for t in annotation['tokens']]
-        for role in label:
-            start, end = label[role]['i_start'], label[role]['i_end']
-            bio[start] = f'B-{role.upper()}'
-            for i in range(start+1, end+1):
-                bio[i] = f'I-{role.upper()}'
+#     bio_labels = [] # one list for each pair of subject-verb and character-action
+#     for i, label in enumerate(annotation['labels']):
+#         bio = ['O' for t in annotation['tokens']]
+#         for role in label:
+#             start, end = label[role]['i_start'], label[role]['i_end']
+#             bio[start] = f'B-{role.upper()}'
+#             for i in range(start+1, end+1):
+#                 bio[i] = f'I-{role.upper()}'
         
-        bio_labels.append(bio)
-    annotation['bio_labels'] = bio_labels
+#         bio_labels.append(bio)
+#     annotation['bio_labels'] = bio_labels
 
-    return annotation
+#     return annotation
 
 
 def evaluate_clear_metrics(true_labels, predicted_labels):
@@ -219,11 +229,9 @@ def evaluate_spans(predicted_labels, ground_truth_labels, mode='partial'):
     predicted_spans = []
     ground_truth_spans = []
     for item in predicted_labels:
-        for role in item:
-            predicted_spans.append((role, get_token_positions(item[role])))
+        predicted_spans.append((item['role'].lower(), get_token_positions(item)))
     for item in ground_truth_labels:
-        for role in item:
-            ground_truth_spans.append((role, get_token_positions(item[role])))
+        ground_truth_spans.append((item['role'].lower(), get_token_positions(item)))
 
     # Calculate true positives, false positives, and false negatives
     tp = {role:0 for role in roles}
@@ -231,7 +239,7 @@ def evaluate_spans(predicted_labels, ground_truth_labels, mode='partial'):
     fn = {role:0 for role in roles}
     
     if mode=='partial':
-        for i, (pred_role, pred_span) in enumerate(predicted_spans):
+        for pred_role, pred_span in predicted_spans:
             match_found = any((pred_span.issubset(gt_span) and pred_role==gt_role) \
                                for gt_role, gt_span in ground_truth_spans)
             if match_found:
@@ -328,24 +336,28 @@ def micro_average(total_tp, total_fp, total_fn, total_tn=0):
 def process():
     annotations = read_annotation(args.annotation_file)
     predictions = read_prediction(args.prediction_file)
-    i = 0
+    # annotations1 = read_annotation(args.annotation_file)
+    # annotations2 = read_annotation(args.annotation_file.replace('original', 'paraphrase'))
+    # annotations = chain(annotations1, annotations2)
+    # predictions1 = read_prediction(args.prediction_file)
+    # predictions2 = read_prediction(args.prediction_file.replace('original', 'paraphrase'))
+    # predictions = chain(predictions1, predictions2)
     true_scores = []
     pred_scores = []
     span_scores = []
-    for anno, pred in zip(annotations, predictions):
+    for i, (anno, pred) in enumerate(zip(annotations, predictions)):
         anno = char_to_token(anno, tokens=pred['tokens'])
-        pred = pred
 
         if args.mode is None or args.mode=='clear-metric':
             true_scores.append(anno['score'])
             pred_scores.append(pred['score'])
 
-
         if args.mode is None or args.mode=='span-label':
             span_scores.append(evaluate_spans(pred['labels'], anno['labels'], args.span_mode))
 
-        i += 1
-        if i == args.max: break
+        if i == args.max: 
+            break
+
     print(f'n =', len(pred_scores))
 
     confusion_metrics = ['TP', 'FP', 'FN', 'TN']
@@ -353,8 +365,9 @@ def process():
 
     if args.mode is None or args.mode=='clear-metric':
         print('=== ClearMetric Evaluation: Predicting Rules Adherence of a Sentence ===')
-        
         scores = evaluate_clear_metrics(true_scores, pred_scores)
+        pickle.dump(true_scores, open('orig_true_scores.pickle', 'wb'))
+        pickle.dump(pred_scores, open('orig_pred_scores.pickle', 'wb'))
         n = len(scores)
         classes = list(choices_dict.keys())
         

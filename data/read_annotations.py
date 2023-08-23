@@ -1,7 +1,11 @@
 import re
 import json
 import spacy
-import tqdm
+import argparse
+
+parser = argparse.ArgumentParser(description="",
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("annotation_folder", type=str, help="")
 
 nlp = None
 
@@ -112,15 +116,16 @@ def char_to_token(annotation):
 
 
 if __name__=='__main__':
-
+    args = parser.parse_args()
     spacy_model_name = 'en_core_web_md'
 
-    annotation_path = 'data/Style-Examples/annotation.json'
+    annotation_path = 'data/' + args.annotation_folder +'/annotation-original.json'
     annotation = read_annotation(annotation_path)
 
     i = 0
     for item in annotation:
-        item = char_to_token(item)
+        label = char_to_token(item)
+        print(len(label['labels']))
         print(item)
         i += 1
         if i>0:
